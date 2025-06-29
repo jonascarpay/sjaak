@@ -47,7 +47,7 @@ impl BitBoard {
     }
 
     pub fn from_squares<I: Iterator<Item = Square>>(iter: I) -> Self {
-        iter.fold(Self::EMPTY, |acc, el| acc | el.to_bitboard())
+        iter.fold(Self::EMPTY, |acc, el| acc.union(el.to_bitboard()))
     }
     pub const fn to_bits(self) -> u64 {
         self.bits
@@ -73,38 +73,6 @@ impl BitBoard {
         BitBoard {
             bits: self.bits.reverse_bits(),
         }
-    }
-}
-
-impl std::ops::BitAnd for BitBoard {
-    type Output = BitBoard;
-
-    fn bitand(self, rhs: Self) -> Self::Output {
-        BitBoard {
-            bits: self.bits & rhs.bits,
-        }
-    }
-}
-
-impl std::ops::BitAndAssign for BitBoard {
-    fn bitand_assign(&mut self, rhs: Self) {
-        self.bits.bitand_assign(rhs.bits)
-    }
-}
-
-impl std::ops::BitOr for BitBoard {
-    type Output = BitBoard;
-
-    fn bitor(self, rhs: Self) -> Self::Output {
-        BitBoard {
-            bits: self.bits | rhs.bits,
-        }
-    }
-}
-
-impl std::ops::BitOrAssign for BitBoard {
-    fn bitor_assign(&mut self, rhs: Self) {
-        self.bits.bitor_assign(rhs.bits)
     }
 }
 
@@ -157,13 +125,10 @@ impl Square {
         todo!()
     }
     pub fn rook_moves(self) -> BitBoard {
-        let (x, y) = self.to_xy();
-        let row = 0xFF << (y << 3);
-        let col = 0x0101_0101_0101_0101 << x;
-        BitBoard::from_bits(row | col) & !self.to_bitboard()
+        todo!()
     }
     pub fn queen_moves(self) -> BitBoard {
-        self.rook_moves() | self.bishop_moves()
+        self.rook_moves().union(self.bishop_moves())
     }
     pub fn king_moves(self) -> BitBoard {
         todo!()
