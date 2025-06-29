@@ -68,6 +68,13 @@ impl Square {
     pub fn all() -> impl ExactSizeIterator<Item = Square> {
         (0..64).map(|index| Square { index })
     }
+    pub const fn is_dark(self) -> bool {
+        let (rank, file) = self.to_xy();
+        (rank % 2) == (file % 2)
+    }
+    pub const fn is_light(self) -> bool {
+        !self.is_dark()
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
