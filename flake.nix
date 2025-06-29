@@ -42,6 +42,7 @@
         devShells.default = pkgs.mkShell {
           packages = [
             rust-env
+            pkgs.cargo-show-asm
           ];
         };
         packages = rec {

@@ -1,12 +1,25 @@
-use crate::coord::Square;
+use crate::{
+    coord::{File, Rank, Square},
+    print_board::format_board_fancy,
+};
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BitBoard {
     bits: u64,
 }
 
+impl std::fmt::Debug for BitBoard {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "0x{:x}", self.bits)?;
+        writeln!(
+            f,
+            "{}",
+            format_board_fancy(|sq| if self.get(sq) { 'x' } else { ' ' }).unwrap()
+        )
+    }
+}
+
 impl BitBoard {
-    const EMPTY: BitBoard = BitBoard { bits: 0 };
     pub const fn new() -> Self {
         Self::EMPTY
     }
@@ -56,6 +69,7 @@ impl BitBoard {
         BitBoard { bits }
     }
 
+    // Set theory //
     pub const fn union(self, rhs: BitBoard) -> BitBoard {
         BitBoard {
             bits: self.bits | rhs.bits,
@@ -69,11 +83,25 @@ impl BitBoard {
     pub const fn complement(self) -> BitBoard {
         BitBoard { bits: !self.bits }
     }
+    pub const fn symmetric_difference(self, rhs: BitBoard) -> BitBoard {
+        BitBoard {
+            bits: self.bits ^ rhs.bits,
+        }
+    }
+
     pub const fn reverse(self) -> BitBoard {
         BitBoard {
             bits: self.bits.reverse_bits(),
         }
     }
+    pub const EMPTY: BitBoard = BitBoard { bits: 0 };
+    pub const RIM: BitBoard = {
+        Rank::R1
+            .to_bitboard()
+            .union(Rank::R8.to_bitboard())
+            .union(File::FA.to_bitboard())
+            .union(File::FH.to_bitboard())
+    };
 }
 
 impl Iterator for BitBoard {
@@ -135,9 +163,24 @@ impl Square {
     }
 }
 
+impl Rank {
+    pub const fn to_bitboard(self) -> BitBoard {
+        BitBoard::from_bits(0xFF << (self.to_u8() << 3))
+    }
+}
+
+impl File {
+    pub const fn to_bitboard(self) -> BitBoard {
+        BitBoard::from_bits(0x0101_0101_0101_0101 << self.to_u8())
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::{bitboard::BitBoard, coord::Square};
+    use crate::{
+        bitboard::BitBoard,
+        coord::{File, Rank, Square},
+    };
     use quickcheck::Arbitrary;
     use quickcheck_macros::quickcheck;
     #[cfg(test)]
@@ -187,5 +230,25 @@ mod tests {
     #[quickcheck]
     fn from_squares_is_id(bb: BitBoard) -> bool {
         BitBoard::from_squares(bb) == bb
+    }
+
+    #[test]
+    fn rim_bb() {
+        let mut bb = BitBoard::new();
+        for rank in Rank::ALL {
+            bb.set_assign(Square::from_coord(File::FA, rank));
+            bb.set_assign(Square::from_coord(File::FH, rank));
+        }
+        for file in File::ALL {
+            bb.set_assign(Square::from_coord(file, Rank::R1));
+            bb.set_assign(Square::from_coord(file, Rank::R8));
+        }
+        assert_eq!(bb, BitBoard::RIM)
+    }
+
+    #[quickcheck]
+    fn square_to_bb_is_rank_file_bb_intersect(sq: Square) -> bool {
+        let (rank, file) = sq.to_coord();
+        sq.to_bitboard() == rank.to_bitboard().intersect(file.to_bitboard())
     }
 }

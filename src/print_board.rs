@@ -3,7 +3,7 @@ use std::io::Write;
 
 // https://en.wikipedia.org/wiki/Chess_symbols_in_Unicode
 
-pub fn format_board<F: Fn(Square) -> char>(get_char: F) -> std::io::Result<String> {
+pub fn format_board_fancy<F: Fn(Square) -> char>(get_char: F) -> std::io::Result<String> {
     // If the buffer is filled with ASCII characters, a buffer size of 709
     // will always contain exactly the entire board. But, unicode chess pieces mess with this, so
     // let's forego the optimization and pick a safe 1024.
@@ -27,12 +27,4 @@ pub fn format_board<F: Fn(Square) -> char>(get_char: F) -> std::io::Result<Strin
     writeln!(output, "    a  b  c  d  e  f  g  h")?;
 
     Ok(String::from_utf8(output).unwrap())
-}
-
-#[test]
-fn empty_board() {
-    let board_str = format_board(|sq| if sq.to_index() == 1 { '♜' } else { ' ' }).unwrap();
-    let expected_str = String::new();
-    print!("{}", board_str);
-    assert_eq!(board_str, "")
 }

@@ -1,6 +1,7 @@
 use std::fmt::{self};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+// TODO enum?
 pub struct Square {
     index: u8,
 }
@@ -65,15 +66,27 @@ impl Square {
         }
         Self::from_chars(c1, c2)
     }
-    pub fn all() -> impl ExactSizeIterator<Item = Square> {
+    pub fn iter_all() -> impl ExactSizeIterator<Item = Square> {
         (0..64).map(|index| Square { index })
     }
+
     pub const fn is_dark(self) -> bool {
         let (rank, file) = self.to_xy();
         (rank % 2) == (file % 2)
     }
     pub const fn is_light(self) -> bool {
         !self.is_dark()
+    }
+
+    #[inline]
+    pub const fn offset(self, offset_file: i8, offset_rank: i8) -> Option<Square> {
+        // cargo asm shows that in general this function optimizes/specializes very nicely
+        let (rank, file) = self.to_coord();
+        if let (Some(rank), Some(file)) = (rank.offset(offset_rank), file.offset(offset_file)) {
+            Some(Square::from_coord(file, rank))
+        } else {
+            None
+        }
     }
 }
 
@@ -157,6 +170,12 @@ impl Rank {
             _ => None,
         }
     }
+
+    #[inline]
+    const fn offset(self, offset: i8) -> Option<Self> {
+        // verified by cargo asm that this optimizes/specializes nicely
+        Self::from_u8((self.to_u8() as i8 + offset) as u8)
+    }
 }
 
 impl File {
@@ -221,6 +240,47 @@ impl File {
             _ => None,
         }
     }
+
+    #[inline]
+    const fn offset(self, offset: i8) -> Option<Self> {
+        Self::from_u8((self.to_u8() as i8 + offset) as u8)
+    }
+}
+
+#[rustfmt::skip]
+impl Square {
+    pub const fn north_by(self,     offset: i8) -> Option<Square> { self.offset(0,       offset)  }
+    pub const fn south_by(self,     offset: i8) -> Option<Square> { self.offset(0,       -offset) }
+    pub const fn east_by(self,      offset: i8) -> Option<Square> { self.offset(0,       offset)  }
+    pub const fn west_by(self,      offset: i8) -> Option<Square> { self.offset(0,       -offset) }
+    pub const fn northeast_by(self, offset: i8) -> Option<Square> { self.offset(offset,  offset)  }
+    pub const fn southeast_by(self, offset: i8) -> Option<Square> { self.offset(offset,  -offset) }
+    pub const fn northwest_by(self, offset: i8) -> Option<Square> { self.offset(-offset, offset)  }
+    pub const fn southwest_by(self, offset: i8) -> Option<Square> { self.offset(-offset, -offset) }
+    pub const fn north(self)     -> Option<Square> { self.offset(0,  1)  }
+    pub const fn south(self)     -> Option<Square> { self.offset(0,  -1) }
+    pub const fn east(self)      -> Option<Square> { self.offset(0,  1)  }
+    pub const fn west(self)      -> Option<Square> { self.offset(0,  -1) }
+    pub const fn northeast(self) -> Option<Square> { self.offset(1,  1)  }
+    pub const fn southeast(self) -> Option<Square> { self.offset(1,  -1) }
+    pub const fn northwest(self) -> Option<Square> { self.offset(-1, 1)  }
+    pub const fn southwest(self) -> Option<Square> { self.offset(-1, -1) }
+}
+
+#[rustfmt::skip]
+impl Rank {
+    pub const fn north_by(self, offset: i8) -> Option<Self> { self.offset(offset) }
+    pub const fn south_by(self, offset: i8) -> Option<Self> { self.offset(-offset) }
+    pub const fn south(self) -> Option<Rank> { self.offset(-1) }
+    pub const fn north(self) -> Option<Rank> { self.offset(1) }
+}
+
+#[rustfmt::skip]
+impl File {
+    pub const fn east_by(self, offset: i8) -> Option<Self> { self.offset(offset) }
+    pub const fn west_by(self, offset: i8) -> Option<Self> { self.offset(-offset) }
+    pub const fn east(self) -> Option<File> { self.offset(1) }
+    pub const fn west(self) -> Option<File> { self.offset(-1) }
 }
 
 impl TryFrom<u8> for Rank {
@@ -308,7 +368,7 @@ pub mod tests {
             Some(Square::from_coord(File::FH, Rank::R1,)),
             Square::from_str("h1")
         );
-        assert_eq!(Square::all().len(), 64)
+        assert_eq!(Square::iter_all().len(), 64)
     }
 
     #[quickcheck]
@@ -342,5 +402,27 @@ pub mod tests {
     #[quickcheck]
     fn file_u8_roundtrip(file: File) -> bool {
         File::from_u8(file.to_u8()) == Some(file)
+    }
+
+    #[quickcheck]
+    fn offset_bidirectional(src: Square, offset_file: i8, offset_rank: i8) -> bool {
+        let offset_rank = offset_rank / 2; // Avoid overflows
+        let offset_file = offset_file / 2; // Avoid overflows
+        if let Some(dst) = src.offset(offset_file, offset_rank) {
+            dst.offset(-offset_file, -offset_rank) == Some(src)
+        } else {
+            true
+        }
+    }
+
+    #[quickcheck]
+    fn only_offset_0_is_id(src: Square, offset_file: i8, offset_rank: i8) -> bool {
+        let offset_rank = offset_rank / 2; // Avoid overflows
+        let offset_file = offset_file / 2; // Avoid overflows
+
+        let dst = src.offset(offset_file, offset_rank);
+        let is_id = dst == Some(src);
+        let is_zero = offset_file == 0 && offset_rank == 0;
+        is_id == is_zero
     }
 }
