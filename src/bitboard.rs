@@ -119,15 +119,13 @@ impl Iterator for BitBoard {
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.len(), Some(self.len()))
+        let len = self.to_bits().count_ones() as usize;
+        (len, Some(len))
     }
 }
 
-impl ExactSizeIterator for BitBoard {
-    fn len(&self) -> usize {
-        self.bits.count_ones() as usize
-    }
-}
+impl ExactSizeIterator for BitBoard {}
+impl std::iter::FusedIterator for BitBoard {}
 
 impl Default for BitBoard {
     fn default() -> Self {

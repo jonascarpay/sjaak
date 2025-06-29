@@ -33,6 +33,7 @@ impl Side {
             rooks: BitBoard::from_squares(["a8", "h8"].into_iter().filter_map(Square::from_str)),
         }
     }
+    // TODO write this more semantically
     pub const WHITE: Side = Side {
         pawns: BitBoard::from_bits(0xff00),
         king: BitBoard::from_bits(0x10),
