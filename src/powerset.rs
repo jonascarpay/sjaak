@@ -1,11 +1,12 @@
 use crate::bitboard::BitBoard;
 
 #[derive(Clone)]
-// Does not return the empty set
-// TODO: check if that makes sense
+// Does not yield the empty set
+// TODO: check if that makes sense, or if it's better to not yield the original
 pub struct PowerSet {
     mask: u64,
     next: u64,
+    done: bool,
 }
 
 impl std::fmt::Debug for PowerSet {
@@ -25,13 +26,14 @@ impl PowerSet {
         PowerSet {
             mask: bb.to_bits(),
             next: bb.to_bits(),
+            done: false,
         }
     }
     const fn to_bitboard(self) -> BitBoard {
         BitBoard::from_bits(self.mask)
     }
     pub const fn remaining(&self) -> u64 {
-        (1 << self.next.count_ones()) - 1
+        1 << self.next.count_ones()
     }
 }
 
@@ -39,11 +41,15 @@ impl Iterator for PowerSet {
     type Item = BitBoard;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.next == 0 {
+        if self.done {
             return None;
         } else {
             let current = self.next;
-            self.next = (current - 1) & self.mask;
+            if current == 0 {
+                self.done = true;
+            } else {
+                self.next = (current - 1) & self.mask;
+            }
             Some(BitBoard::from_bits(current))
         }
     }
@@ -64,23 +70,25 @@ mod tests {
 
     use crate::bitboard::BitBoard;
 
-    use super::PowerSet;
+    #[derive(Clone, Debug)]
+    struct SmallBitBoard(BitBoard);
 
-    impl Arbitrary for PowerSet {
+    impl Arbitrary for SmallBitBoard {
         fn arbitrary(g: &mut quickcheck::Gen) -> Self {
             let mut bb: BitBoard = Arbitrary::arbitrary(g);
             while bb.len() > 8 {
                 bb = bb.intersect(Arbitrary::arbitrary(g));
             }
-            bb.powerset()
+            SmallBitBoard(bb)
         }
         fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
-            Box::new(self.clone().skip(1).map(|bb| bb.powerset()))
+            Box::new(self.0.powerset().skip(1).map(|bb| SmallBitBoard(bb)))
         }
     }
 
     #[quickcheck]
-    fn count_is_accurate(ps: PowerSet) -> bool {
+    fn count_is_accurate(SmallBitBoard(bb): SmallBitBoard) -> bool {
+        let ps = bb.powerset();
         let l = ps.len();
         let mut count = 0;
         for _ in ps {
@@ -91,12 +99,18 @@ mod tests {
     }
 
     #[quickcheck]
-    fn powerset_contains_every_unit_set(bb: BitBoard) -> bool {
-        if bb.len() < 8 {
-            bb.clone()
-                .all(|sq| bb.powerset().any(|bb| sq.to_bitboard() == bb))
-        } else {
-            true
-        }
+    fn powerset_contains_every_unit_set(SmallBitBoard(bb): SmallBitBoard) -> bool {
+        bb.clone()
+            .all(|sq| bb.powerset().any(|bb| sq.to_bitboard() == bb))
+    }
+
+    #[quickcheck]
+    fn powerset_contains_original(SmallBitBoard(bb): SmallBitBoard) -> bool {
+        bb.powerset().any(|bb_| bb_ == bb)
+    }
+
+    #[quickcheck]
+    fn powerset_contains_empty_set(SmallBitBoard(bb): SmallBitBoard) -> bool {
+        bb.powerset().any(|bb| bb == BitBoard::EMPTY)
     }
 }
