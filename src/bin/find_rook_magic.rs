@@ -2,7 +2,7 @@ use shah::{
     coord::{File, Square},
     sliding_pieces::{
         magic_value::MagicValue,
-        rook_magic::{index_bits, magic_size, ROOK_MAGICS},
+        rook::{index_bits, magic_size, ROOK_MAGICS},
     },
 };
 use std::{sync::Mutex, thread};
