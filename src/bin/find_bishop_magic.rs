@@ -1,15 +1,15 @@
 use shah::{
     coord::{File, Square},
     sliding_pieces::{
+        bishop::{magic_lut_size, BISHOP_INDEX_BITS, BISHOP_MAGICS},
         magic_value::MagicValue,
-        rook::{index_bits, magic_lut_size, ROOK_MAGICS},
     },
 };
 use std::{sync::Mutex, thread};
 use tinyrand::Rand;
 
 fn main() {
-    let table: Mutex<[(usize, u64); 64]> = Mutex::new(ROOK_MAGICS);
+    let table: Mutex<[(usize, u64); 64]> = Mutex::new(BISHOP_MAGICS);
 
     thread::scope(|s| {
         for _ in 0..num_cpus::get() {
@@ -20,12 +20,12 @@ fn main() {
                     let index = (rng.next_u64() % 64) as usize;
                     let best = { table.lock().unwrap()[index].0 };
                     let sq = Square::from_index(index as u8).unwrap();
-                    let bits = index_bits(sq);
-                    if best == (1 << index_bits(sq)) {
-                        continue;
-                    }
+                    // let bits = index_bits(sq);
+                    // if best == (1 << index_bits(sq)) {
+                    //     continue;
+                    // }
                     for _ in 0..0xFFFF {
-                        let magic = MagicValue::random(&mut || rng.next_u64(), bits);
+                        let magic = MagicValue::random(&mut || rng.next_u64(), BISHOP_INDEX_BITS);
                         if let Some(new_best) = magic_lut_size(sq, magic, best) {
                             let mut table = table.lock().unwrap();
                             let prev_best = table[index].0;

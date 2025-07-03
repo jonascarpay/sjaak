@@ -47,7 +47,7 @@ const fn rook_moves_ref(sq: Square, blockers: BitBoard) -> BitBoard {
     bb
 }
 
-pub const fn rook_moves_fast(sq: Square, blockers: BitBoard) -> BitBoard {
+pub const fn rook_moves(sq: Square, blockers: BitBoard) -> BitBoard {
     let (offset, magic) = ROOK_TABLE_INDEX[sq.to_index() as usize];
     let index = offset + magic.to_index(blocker_squares(sq).intersect(blockers), 12);
     ROOK_TABLE[index]
@@ -56,7 +56,7 @@ pub const fn rook_moves_fast(sq: Square, blockers: BitBoard) -> BitBoard {
 // TODO investigate whether we can potentially drop the bit clear
 // in the actual engine, since it won't be set? And more generally, maybe this is faster to
 // cache?
-pub const fn blocker_squares(sq: Square) -> BitBoard {
+const fn blocker_squares(sq: Square) -> BitBoard {
     const RANK_MASK: u64 = 0b0111_1110;
     const FILE_MASK: u64 = 0x00_01_01_01_01_01_01_00;
     let (x, y) = sq.to_xy();
@@ -65,7 +65,10 @@ pub const fn blocker_squares(sq: Square) -> BitBoard {
     BitBoard::from_bits((rank_mask | file_mask) & !sq.to_bitboard().to_bits())
 }
 
+pub const ROOK_INDEX_BITS: u8 = 12;
+
 // TODO might be better to calculate sizes
+// TODO static?
 #[rustfmt::skip]
 pub const ROOK_MAGICS: [(usize, u64); 64] =
 [         /* a */                     /* b */                     /* c */                     /* d */                     /* e */                     /* f */                     /* g */                     /* h */
@@ -111,7 +114,7 @@ static ROOK_TABLE: [BitBoard; ROOK_TABLE_SIZE] = {
         let sq = Square::from_index(i as u8).unwrap();
         let mut blockers = blocker_squares(sq).powerset();
         while let Some(blockers) = blockers.pop() {
-            let index = magic.to_index(blockers, 12);
+            let index = magic.to_index(blockers, ROOK_INDEX_BITS);
             table[table_offset + index] = rook_moves_ref(sq, blockers);
         }
         i += 1;
@@ -119,12 +122,12 @@ static ROOK_TABLE: [BitBoard; ROOK_TABLE_SIZE] = {
     table
 };
 
-pub fn magic_size(sq: Square, magic: MagicValue, max_size: usize) -> Option<usize> {
+pub fn magic_lut_size(sq: Square, magic: MagicValue, max_size: usize) -> Option<usize> {
     let mut max_index = 0;
     let mut lut = vec![BitBoard::EMPTY; max_size];
     for blockers in blocker_squares(sq).powerset() {
-        let moves = rook_moves_fast(sq, blockers);
-        let index = magic.to_index(blockers, 12);
+        let moves = rook_moves(sq, blockers);
+        let index = magic.to_index(blockers, ROOK_INDEX_BITS);
         if index < max_size {
             let entry = &mut lut[index];
             if *entry == BitBoard::EMPTY {
@@ -140,6 +143,7 @@ pub fn magic_size(sq: Square, magic: MagicValue, max_size: usize) -> Option<usiz
     Some(max_index + 1)
 }
 
+// TODO Probably drop, now that we have a fixed amount
 pub const fn index_bits(sq: Square) -> u8 {
     const FILE_RIM: BitBoard = File::FA.to_bitboard().union(File::FH.to_bitboard());
     const RANK_RIM: BitBoard = Rank::R1.to_bitboard().union(Rank::R8.to_bitboard());
@@ -147,13 +151,13 @@ pub const fn index_bits(sq: Square) -> u8 {
 }
 
 #[cfg(test)]
-pub mod tests {
+mod tests {
     use quickcheck_macros::quickcheck;
 
     use crate::{
         bitboard::BitBoard,
         coord::Square,
-        sliding_pieces::rook::{blocker_squares, index_bits, rook_moves_fast, rook_moves_ref},
+        sliding_pieces::rook::{blocker_squares, index_bits, rook_moves, rook_moves_ref},
     };
 
     #[test]
@@ -186,7 +190,7 @@ pub mod tests {
     #[quickcheck]
     fn rook_moves_magic_matches_ref(sq: Square, blockers: BitBoard) -> bool {
         let blockers = blockers.unset(sq);
-        rook_moves_ref(sq, blockers) == rook_moves_fast(sq, blockers)
+        rook_moves_ref(sq, blockers) == rook_moves(sq, blockers)
     }
 
     #[quickcheck]
