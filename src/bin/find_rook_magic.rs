@@ -1,6 +1,9 @@
 use shah::{
     coord::{File, Square},
-    sliding_pieces::rook_magic::{index_bits, magic_size, MagicValue, ROOK_MAGICS},
+    sliding_pieces::{
+        magic_value::MagicValue,
+        rook_magic::{index_bits, magic_size, ROOK_MAGICS},
+    },
 };
 use std::{sync::Mutex, thread};
 use tinyrand::Rand;
@@ -28,7 +31,7 @@ fn main() {
                             let prev_best = table[index].0;
                             if new_best < prev_best {
                                 println!(
-                                    "----- {}: {} (- {}) -----",
+                                    "----- {}: {} (-{}) -----",
                                     sq,
                                     new_best,
                                     prev_best - new_best
@@ -37,7 +40,7 @@ fn main() {
                                 let mut total_size = 0;
                                 print!("[        ");
                                 for file in File::ALL {
-                                    print!(" /* {} */                   ", file.to_char());
+                                    print!(" /* {} */                    ", file.to_char());
                                 }
                                 println!();
                                 for y in 0..8 {
@@ -49,7 +52,7 @@ fn main() {
                                         print!(" ({:4},0x{:016x}),", size, magic);
                                         total_size += size;
                                     }
-                                    println!("");
+                                    println!();
                                 }
                                 println!("]");
                                 println!("{} B", total_size * 8);

@@ -29,7 +29,7 @@ impl PowerSet {
             done: false,
         }
     }
-    const fn to_bitboard(self) -> BitBoard {
+    const fn to_bitboard(&self) -> BitBoard {
         BitBoard::from_bits(self.mask)
     }
     pub const fn remaining(&self) -> u64 {
@@ -37,7 +37,7 @@ impl PowerSet {
     }
     pub const fn pop(&mut self) -> Option<BitBoard> {
         if self.done {
-            return None;
+            None
         } else {
             let current = self.next;
             if current == 0 {

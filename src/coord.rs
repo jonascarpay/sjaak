@@ -60,6 +60,7 @@ impl Square {
             None
         }
     }
+    // TODO this conflicts with std::FromStr, implement that instead?
     pub fn from_str(str: &str) -> Option<Self> {
         let mut chars = str.chars();
         let c1 = chars.next()?;
@@ -330,15 +331,14 @@ impl File {
 impl TryFrom<u8> for Rank {
     type Error = ();
     fn try_from(value: u8) -> Result<Self, Self::Error> {
-        Rank::from_u8(value).map_or(Err(()), Ok)
+        Rank::from_u8(value).ok_or(())
     }
 }
 
 impl TryFrom<u8> for File {
     type Error = ();
-
     fn try_from(value: u8) -> Result<Self, Self::Error> {
-        File::from_u8(value).map_or(Err(()), Ok)
+        File::from_u8(value).ok_or(())
     }
 }
 
