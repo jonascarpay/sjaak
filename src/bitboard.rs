@@ -14,7 +14,7 @@ impl std::fmt::Debug for BitBoard {
         writeln!(
             f,
             "{}",
-            format_board_fancy(|sq| if self.get(sq) { 'x' } else { ' ' }).unwrap()
+            format_board_fancy(|sq| if self.contains(sq) { 'x' } else { ' ' }).unwrap()
         )
     }
 }
@@ -23,7 +23,7 @@ impl BitBoard {
     pub const fn new() -> Self {
         Self::EMPTY
     }
-    pub fn get(self, sq: Square) -> bool {
+    pub const fn contains(self, sq: Square) -> bool {
         (self.bits >> sq.to_index()) & 1 == 1
     }
 
@@ -217,12 +217,12 @@ mod tests {
 
     #[quickcheck]
     fn set_get(bb: BitBoard, sq: Square, val: bool) -> bool {
-        bb.set_to(sq, val).get(sq) == val
+        bb.set_to(sq, val).contains(sq) == val
     }
 
     #[quickcheck]
     fn get_set(bb: BitBoard, sq: Square) -> bool {
-        bb == bb.set_to(sq, bb.get(sq))
+        bb == bb.set_to(sq, bb.contains(sq))
     }
 
     #[quickcheck]

@@ -1,4 +1,7 @@
-use std::fmt::{self};
+use std::{
+    fmt::{self},
+    iter::FusedIterator,
+};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 // TODO enum?
@@ -66,7 +69,7 @@ impl Square {
         }
         Self::from_chars(c1, c2)
     }
-    pub fn iter_all() -> impl ExactSizeIterator<Item = Square> {
+    pub fn iter_all() -> impl ExactSizeIterator<Item = Square> + Clone {
         (0..64).map(|index| Square { index })
     }
 
@@ -247,20 +250,61 @@ impl File {
     }
 }
 
+// TODO this is probably not used in a hot loop.
+// If it were, Option<Square> could be optimized into a more compact representation, maybe
+pub struct Ray {
+    next: Option<Square>,
+    offset_rank: i8,
+    offset_file: i8,
+}
+
+impl Ray {
+    pub const fn new_incl(src: Square, offset_file: i8, offset_rank: i8) -> Self {
+        Ray {
+            next: Some(src),
+            offset_rank,
+            offset_file,
+        }
+    }
+    pub const fn new_excl(src: Square, offset_file: i8, offset_rank: i8) -> Self {
+        let mut res = Self::new_incl(src, offset_file, offset_rank);
+        res.step();
+        res
+    }
+    pub const fn step(&mut self) -> Option<Square> {
+        let current = self.next;
+        if let Some(sq) = current {
+            self.next = sq.offset(self.offset_file, self.offset_rank);
+        }
+        current
+    }
+}
+
+impl Iterator for Ray {
+    type Item = Square;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.step()
+    }
+}
+
+impl FusedIterator for Ray {}
+
+// TODO Can probably all be replaced by Ray, check once magic has been implemented
 #[rustfmt::skip]
 impl Square {
-    pub const fn north_by(self,     offset: i8) -> Option<Square> { self.offset(0,       offset)  }
-    pub const fn south_by(self,     offset: i8) -> Option<Square> { self.offset(0,       -offset) }
-    pub const fn east_by(self,      offset: i8) -> Option<Square> { self.offset(0,       offset)  }
-    pub const fn west_by(self,      offset: i8) -> Option<Square> { self.offset(0,       -offset) }
+    pub const fn north_by(self,     offset: i8) -> Option<Square> { self.offset(0, offset)  }
+    pub const fn south_by(self,     offset: i8) -> Option<Square> { self.offset(0, -offset) }
+    pub const fn east_by(self,      offset: i8) -> Option<Square> { self.offset(offset,  0)       }
+    pub const fn west_by(self,      offset: i8) -> Option<Square> { self.offset(-offset, 0)       }
     pub const fn northeast_by(self, offset: i8) -> Option<Square> { self.offset(offset,  offset)  }
     pub const fn southeast_by(self, offset: i8) -> Option<Square> { self.offset(offset,  -offset) }
     pub const fn northwest_by(self, offset: i8) -> Option<Square> { self.offset(-offset, offset)  }
     pub const fn southwest_by(self, offset: i8) -> Option<Square> { self.offset(-offset, -offset) }
     pub const fn north(self)     -> Option<Square> { self.offset(0,  1)  }
     pub const fn south(self)     -> Option<Square> { self.offset(0,  -1) }
-    pub const fn east(self)      -> Option<Square> { self.offset(0,  1)  }
-    pub const fn west(self)      -> Option<Square> { self.offset(0,  -1) }
+    pub const fn east(self)      -> Option<Square> { self.offset(1,  0)  }
+    pub const fn west(self)      -> Option<Square> { self.offset(-1, 0) }
     pub const fn northeast(self) -> Option<Square> { self.offset(1,  1)  }
     pub const fn southeast(self) -> Option<Square> { self.offset(1,  -1) }
     pub const fn northwest(self) -> Option<Square> { self.offset(-1, 1)  }

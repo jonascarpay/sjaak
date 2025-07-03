@@ -35,12 +35,7 @@ impl PowerSet {
     pub const fn remaining(&self) -> u64 {
         1 << self.next.count_ones()
     }
-}
-
-impl Iterator for PowerSet {
-    type Item = BitBoard;
-
-    fn next(&mut self) -> Option<Self::Item> {
+    pub const fn pop(&mut self) -> Option<BitBoard> {
         if self.done {
             return None;
         } else {
@@ -52,6 +47,14 @@ impl Iterator for PowerSet {
             }
             Some(BitBoard::from_bits(current))
         }
+    }
+}
+
+impl Iterator for PowerSet {
+    type Item = BitBoard;
+
+    fn next(&mut self) -> Option<BitBoard> {
+        self.pop()
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
