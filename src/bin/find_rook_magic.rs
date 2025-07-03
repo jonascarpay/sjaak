@@ -1,6 +1,6 @@
 use shah::{
     coord::{File, Square},
-    sliding_pieces::{
+    pieces::{
         magic_value::MagicValue,
         rook::{index_bits, magic_lut_size, ROOK_MAGICS},
     },

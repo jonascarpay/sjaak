@@ -3,6 +3,12 @@ use crate::bitboard::BitBoard;
 #[derive(Clone, Copy, Debug)]
 pub struct MagicValue(u64);
 
+// TODO
+// Better, and consistent, naming for the square hierarchy
+// - potential blocker squares
+// - actual blockers
+// - relevant blockers
+
 impl MagicValue {
     pub const fn new(value: u64) -> Self {
         MagicValue(value)

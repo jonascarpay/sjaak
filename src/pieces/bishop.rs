@@ -2,6 +2,16 @@ use crate::{bitboard::BitBoard, coord::Square};
 
 use super::magic_value::MagicValue;
 
+#[cfg(not(debug_assertions))]
+pub const fn bishop_moves(sq: Square, blockers: BitBoard) -> BitBoard {
+    bishop_moves_magic(sq, blockers)
+}
+
+#[cfg(debug_assertions)]
+pub const fn bishop_moves(sq: Square, blockers: BitBoard) -> BitBoard {
+    bishop_moves_ref(sq, blockers)
+}
+
 const fn bishop_moves_ref(sq: Square, blockers: BitBoard) -> BitBoard {
     let mut bb = BitBoard::new();
 
@@ -44,7 +54,7 @@ const fn bishop_moves_ref(sq: Square, blockers: BitBoard) -> BitBoard {
     bb
 }
 
-pub const fn bishop_moves(sq: Square, blockers: BitBoard) -> BitBoard {
+const fn bishop_moves_magic(sq: Square, blockers: BitBoard) -> BitBoard {
     let (offset, mask, magic) = BISHOP_TABLE_INDEX[sq.to_index() as usize];
     let index = offset + magic.to_index(mask.intersect(blockers), BISHOP_INDEX_BITS);
     BISHOP_TABLE[index]
@@ -98,6 +108,7 @@ const BISHOP_TABLE_SIZE: usize = {
 };
 
 #[allow(long_running_const_eval)]
+#[cfg(not(debug_assertions))]
 static BISHOP_TABLE: [BitBoard; BISHOP_TABLE_SIZE] = {
     let mut table = [BitBoard::EMPTY; BISHOP_TABLE_SIZE];
     let mut i = 0;
@@ -114,6 +125,10 @@ static BISHOP_TABLE: [BitBoard; BISHOP_TABLE_SIZE] = {
     }
     table
 };
+
+#[allow(long_running_const_eval)]
+#[cfg(debug_assertions)]
+static BISHOP_TABLE: [BitBoard; BISHOP_TABLE_SIZE] = [BitBoard::EMPTY; BISHOP_TABLE_SIZE];
 
 pub fn magic_lut_size(sq: Square, magic: MagicValue, max_size: usize) -> Option<usize> {
     let mut max_index = 0;
@@ -143,7 +158,7 @@ mod tests {
     use crate::{
         bitboard::BitBoard,
         coord::Square,
-        sliding_pieces::bishop::{bishop_moves, bishop_moves_ref, blocker_squares},
+        pieces::bishop::{bishop_moves, bishop_moves_ref, blocker_squares},
     };
 
     #[test]

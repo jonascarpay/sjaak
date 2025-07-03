@@ -1,6 +1,6 @@
 use shah::{
     coord::{File, Square},
-    sliding_pieces::{
+    pieces::{
         bishop::{magic_lut_size, BISHOP_INDEX_BITS, BISHOP_MAGICS},
         magic_value::MagicValue,
     },

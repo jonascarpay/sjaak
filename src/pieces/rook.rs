@@ -5,6 +5,16 @@ use crate::{
 
 use super::magic_value::MagicValue;
 
+#[cfg(not(debug_assertions))]
+pub const fn rook_moves(sq: Square, blockers: BitBoard) -> BitBoard {
+    rook_moves_magic(sq, blockers)
+}
+
+#[cfg(debug_assertions)]
+pub const fn rook_moves(sq: Square, blockers: BitBoard) -> BitBoard {
+    rook_moves_ref(sq, blockers)
+}
+
 const fn rook_moves_ref(sq: Square, blockers: BitBoard) -> BitBoard {
     let mut bb = BitBoard::new();
 
@@ -47,7 +57,7 @@ const fn rook_moves_ref(sq: Square, blockers: BitBoard) -> BitBoard {
     bb
 }
 
-pub const fn rook_moves(sq: Square, blockers: BitBoard) -> BitBoard {
+const fn rook_moves_magic(sq: Square, blockers: BitBoard) -> BitBoard {
     let (offset, magic) = ROOK_TABLE_INDEX[sq.to_index() as usize];
     let index = offset + magic.to_index(blocker_squares(sq).intersect(blockers), 12);
     ROOK_TABLE[index]
@@ -104,6 +114,7 @@ const ROOK_TABLE_SIZE: usize = {
     total
 };
 
+#[cfg(not(debug_assertions))]
 #[allow(long_running_const_eval)]
 static ROOK_TABLE: [BitBoard; ROOK_TABLE_SIZE] = {
     let mut table = [BitBoard::EMPTY; ROOK_TABLE_SIZE];
@@ -121,6 +132,9 @@ static ROOK_TABLE: [BitBoard; ROOK_TABLE_SIZE] = {
     }
     table
 };
+
+#[cfg(debug_assertions)]
+static ROOK_TABLE: [BitBoard; ROOK_TABLE_SIZE] = [BitBoard::EMPTY; ROOK_TABLE_SIZE];
 
 pub fn magic_lut_size(sq: Square, magic: MagicValue, max_size: usize) -> Option<usize> {
     let mut max_index = 0;
@@ -157,7 +171,7 @@ mod tests {
     use crate::{
         bitboard::BitBoard,
         coord::Square,
-        sliding_pieces::rook::{blocker_squares, index_bits, rook_moves, rook_moves_ref},
+        pieces::rook::{blocker_squares, index_bits, rook_moves, rook_moves_ref},
     };
 
     #[test]
