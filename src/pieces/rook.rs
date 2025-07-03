@@ -6,16 +6,16 @@ use crate::{
 use super::magic_value::MagicValue;
 
 #[cfg(not(debug_assertions))]
-pub const fn rook_moves(sq: Square, blockers: BitBoard) -> BitBoard {
-    rook_moves_magic(sq, blockers)
+pub fn rook_moves(sq: Square, blockers: BitBoard) -> BitBoard {
+    rook_moves_magic_unsafe(sq, blockers)
 }
 
 #[cfg(debug_assertions)]
-pub const fn rook_moves(sq: Square, blockers: BitBoard) -> BitBoard {
+pub fn rook_moves(sq: Square, blockers: BitBoard) -> BitBoard {
     rook_moves_ref(sq, blockers)
 }
 
-const fn rook_moves_ref(sq: Square, blockers: BitBoard) -> BitBoard {
+pub const fn rook_moves_ref(sq: Square, blockers: BitBoard) -> BitBoard {
     let mut bb = BitBoard::new();
 
     let mut east = sq.east();
@@ -57,15 +57,18 @@ const fn rook_moves_ref(sq: Square, blockers: BitBoard) -> BitBoard {
     bb
 }
 
-const fn rook_moves_magic(sq: Square, blockers: BitBoard) -> BitBoard {
-    let (offset, magic) = ROOK_TABLE_INDEX[sq.to_index() as usize];
-    let index = offset + magic.to_index(blocker_squares(sq).intersect(blockers), 12);
+pub const fn rook_moves_magic(sq: Square, blockers: BitBoard) -> BitBoard {
+    let (offset, mask, magic) = ROOK_TABLE_INDEX[sq.to_index() as usize];
+    let index = offset + magic.to_index(mask.intersect(blockers), ROOK_INDEX_BITS);
     ROOK_TABLE[index]
 }
 
-// TODO investigate whether we can potentially drop the bit clear
-// in the actual engine, since it won't be set? And more generally, maybe this is faster to
-// cache?
+pub fn rook_moves_magic_unsafe(sq: Square, blockers: BitBoard) -> BitBoard {
+    let (offset, mask, magic) = unsafe { ROOK_TABLE_INDEX.get_unchecked(sq.to_index() as usize) };
+    let index = offset + magic.to_index(mask.intersect(blockers), ROOK_INDEX_BITS);
+    unsafe { *ROOK_TABLE.get_unchecked(index) }
+}
+
 const fn blocker_squares(sq: Square) -> BitBoard {
     const RANK_MASK: u64 = 0b0111_1110;
     const FILE_MASK: u64 = 0x00_01_01_01_01_01_01_00;
@@ -92,12 +95,16 @@ pub const ROOK_MAGICS: [(usize, u64); 64] =
   /* 8 */ (4096, 0x000041048000e131), (3840, 0x0000800900102041), (3968, 0x00a8088010200442), (3840, 0x6030080420401002), (3840, 0x4004042008100102), (3832, 0x3480040802048001), (3832, 0xa024024002040081), (4096, 0x2020008908e40042),
 ];
 
-static ROOK_TABLE_INDEX: [(usize, MagicValue); 64] = {
-    let mut table = [(0, MagicValue::new(0)); 64];
+static ROOK_TABLE_INDEX: [(usize, BitBoard, MagicValue); 64] = {
+    let mut table = [(0, BitBoard::EMPTY, MagicValue::new(0)); 64];
     let mut i = 0;
     let mut offset = 0;
     while i < 64 {
-        table[i] = (offset, MagicValue::new(ROOK_MAGICS[i].1));
+        table[i] = (
+            offset,
+            blocker_squares(Square::from_index(i as u8).unwrap()),
+            MagicValue::new(ROOK_MAGICS[i].1),
+        );
         offset += ROOK_MAGICS[i].0;
         i += 1;
     }
@@ -171,7 +178,10 @@ mod tests {
     use crate::{
         bitboard::BitBoard,
         coord::Square,
-        pieces::rook::{blocker_squares, index_bits, rook_moves, rook_moves_ref},
+        pieces::rook::{
+            blocker_squares, index_bits, rook_moves, rook_moves_magic, rook_moves_magic_unsafe,
+            rook_moves_ref,
+        },
     };
 
     #[test]
@@ -216,5 +226,11 @@ mod tests {
     #[quickcheck]
     fn blocker_squares_bits(sq: Square) -> bool {
         blocker_squares(sq).len() == index_bits(sq) as usize
+    }
+
+    #[quickcheck]
+    fn magic_safe_is_unsafe(sq: Square, blockers: BitBoard) -> bool {
+        let blockers = blockers.unset(sq);
+        rook_moves_magic(sq, blockers) == rook_moves_magic_unsafe(sq, blockers)
     }
 }

@@ -3,8 +3,8 @@ use crate::{bitboard::BitBoard, coord::Square};
 use super::magic_value::MagicValue;
 
 #[cfg(not(debug_assertions))]
-pub const fn bishop_moves(sq: Square, blockers: BitBoard) -> BitBoard {
-    bishop_moves_magic(sq, blockers)
+pub fn bishop_moves(sq: Square, blockers: BitBoard) -> BitBoard {
+    bishop_moves_magic_unsafe(sq, blockers)
 }
 
 #[cfg(debug_assertions)]
@@ -12,7 +12,7 @@ pub const fn bishop_moves(sq: Square, blockers: BitBoard) -> BitBoard {
     bishop_moves_ref(sq, blockers)
 }
 
-const fn bishop_moves_ref(sq: Square, blockers: BitBoard) -> BitBoard {
+pub const fn bishop_moves_ref(sq: Square, blockers: BitBoard) -> BitBoard {
     let mut bb = BitBoard::new();
 
     let mut northeast = sq.northeast();
@@ -54,10 +54,18 @@ const fn bishop_moves_ref(sq: Square, blockers: BitBoard) -> BitBoard {
     bb
 }
 
-const fn bishop_moves_magic(sq: Square, blockers: BitBoard) -> BitBoard {
+// TODO this seems to somehow be faster than the unsafe version, bechmark in a larger application
+pub const fn bishop_moves_magic(sq: Square, blockers: BitBoard) -> BitBoard {
     let (offset, mask, magic) = BISHOP_TABLE_INDEX[sq.to_index() as usize];
     let index = offset + magic.to_index(mask.intersect(blockers), BISHOP_INDEX_BITS);
     BISHOP_TABLE[index]
+}
+
+// TODO this seems to somehow be faster than the unsafe version, bechmark in a larger application
+pub fn bishop_moves_magic_unsafe(sq: Square, blockers: BitBoard) -> BitBoard {
+    let (offset, mask, magic) = unsafe { BISHOP_TABLE_INDEX.get_unchecked(sq.to_index() as usize) };
+    let index = offset + magic.to_index(mask.intersect(blockers), BISHOP_INDEX_BITS);
+    unsafe { *BISHOP_TABLE.get_unchecked(index) }
 }
 
 const fn blocker_squares(sq: Square) -> BitBoard {
@@ -158,7 +166,10 @@ mod tests {
     use crate::{
         bitboard::BitBoard,
         coord::Square,
-        pieces::bishop::{bishop_moves, bishop_moves_ref, blocker_squares},
+        pieces::bishop::{
+            bishop_moves, bishop_moves_magic, bishop_moves_magic_unsafe, bishop_moves_ref,
+            blocker_squares,
+        },
     };
 
     #[test]
@@ -189,5 +200,11 @@ mod tests {
     fn blocker_mask_size(sq: Square) -> bool {
         let l = blocker_squares(sq).len();
         l >= 5 && l <= 9
+    }
+
+    #[quickcheck]
+    fn magic_safe_is_unsafe(sq: Square, blockers: BitBoard) -> bool {
+        let blockers = blockers.unset(sq);
+        bishop_moves_magic(sq, blockers) == bishop_moves_magic_unsafe(sq, blockers)
     }
 }
