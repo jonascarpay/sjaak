@@ -128,12 +128,14 @@ mod tests {
     #[quickcheck]
     fn pushes_are_symmetric_via_vertical_flip(pawns: BitBoard, blockers: BitBoard) -> bool {
         let pawns = pawns.intersect(PAWNS_ALLOWED);
-        white_pawn_pushes(pawns, blockers) == black_pawn_pushes(pawns.vflip(), blockers.vflip()).vflip()
+        white_pawn_pushes(pawns, blockers)
+            == black_pawn_pushes(pawns.vflip(), blockers.vflip()).vflip()
     }
 
     #[quickcheck]
     fn pushes_commute_with_horizontal_flip(pawns: BitBoard, blockers: BitBoard) -> bool {
         let pawns = pawns.intersect(PAWNS_ALLOWED);
-        white_pawn_pushes(pawns, blockers) == white_pawn_pushes(pawns.hflip(), blockers.hflip()).hflip()
+        white_pawn_pushes(pawns, blockers)
+            == white_pawn_pushes(pawns.hflip(), blockers.hflip()).hflip()
     }
 }
