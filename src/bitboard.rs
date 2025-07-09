@@ -91,6 +91,12 @@ impl BitBoard {
             bits: self.bits ^ rhs.bits,
         }
     }
+    pub const fn lshift(self, sh: i8) -> BitBoard {
+        BitBoard::from_bits(self.to_bits() << sh)
+    }
+    pub const fn rshift(self, sh: i8) -> BitBoard {
+        BitBoard::from_bits(self.to_bits() >> sh)
+    }
 
     pub const fn reverse(self) -> BitBoard {
         BitBoard {
@@ -114,13 +120,11 @@ impl BitBoard {
     }
 
     pub const EMPTY: BitBoard = BitBoard { bits: 0 };
-    pub const RIM: BitBoard = {
-        Rank::R1
-            .to_bitboard()
-            .union(Rank::R8.to_bitboard())
-            .union(File::FA.to_bitboard())
-            .union(File::FH.to_bitboard())
-    };
+    pub const R1: BitBoard = Rank::R1.to_bitboard();
+    pub const R8: BitBoard = Rank::R8.to_bitboard();
+    pub const FA: BitBoard = File::FA.to_bitboard();
+    pub const FH: BitBoard = File::FH.to_bitboard();
+    pub const RIM: BitBoard = Self::R1.union(Self::R8).union(Self::FA).union(Self::FH);
 }
 
 impl Iterator for BitBoard {

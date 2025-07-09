@@ -270,6 +270,7 @@ impl File {
 }
 
 // TODO this is probably not used in a hot loop.
+// TODO or anywhere?
 // If it were, Option<Square> could be optimized into a more compact representation, maybe
 pub struct Ray {
     next: Option<Square>,

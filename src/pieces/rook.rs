@@ -1,7 +1,4 @@
-use crate::{
-    bitboard::BitBoard,
-    coord::{File, Rank, Square},
-};
+use crate::{bitboard::BitBoard, coord::Square};
 
 use super::magic_value::MagicValue;
 
@@ -166,8 +163,8 @@ pub fn magic_lut_size(sq: Square, magic: MagicValue, max_size: usize) -> Option<
 
 // TODO Probably drop, now that we have a fixed amount
 pub const fn index_bits(sq: Square) -> u8 {
-    const FILE_RIM: BitBoard = File::FA.to_bitboard().union(File::FH.to_bitboard());
-    const RANK_RIM: BitBoard = Rank::R1.to_bitboard().union(Rank::R8.to_bitboard());
+    const FILE_RIM: BitBoard = BitBoard::FA.union(BitBoard::FH);
+    const RANK_RIM: BitBoard = BitBoard::R1.union(BitBoard::R8);
     10 + (FILE_RIM.contains(sq) as u8) + (RANK_RIM.contains(sq) as u8)
 }
 
