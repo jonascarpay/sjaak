@@ -58,6 +58,9 @@ impl BitBoard {
             self.unset_assign(sq);
         }
     }
+    pub const fn is_empty(&self) -> bool {
+        self.to_bits() == 0
+    }
 
     pub fn from_squares<I: Iterator<Item = Square>>(iter: I) -> Self {
         iter.fold(Self::EMPTY, |acc, el| acc.union(el.to_bitboard()))

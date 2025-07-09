@@ -151,7 +151,7 @@ pub fn magic_lut_size(sq: Square, magic: MagicValue, max_size: usize) -> Option<
         let index = magic.to_index(blockers, ROOK_INDEX_BITS);
         if index < max_size {
             let entry = &mut lut[index];
-            if *entry == BitBoard::EMPTY {
+            if entry.is_empty() {
                 max_index = std::cmp::max(index, max_index);
                 *entry = moves;
             } else if *entry != moves {

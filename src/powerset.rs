@@ -114,6 +114,6 @@ mod tests {
 
     #[quickcheck]
     fn powerset_contains_empty_set(SmallBitBoard(bb): SmallBitBoard) -> bool {
-        bb.powerset().any(|bb| bb == BitBoard::EMPTY)
+        bb.powerset().any(|bb| bb.is_empty())
     }
 }
