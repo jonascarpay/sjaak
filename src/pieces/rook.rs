@@ -233,4 +233,19 @@ mod tests {
         let blockers = blockers.unset(sq);
         rook_moves_magic(sq, blockers) == rook_moves_magic_unsafe(sq, blockers)
     }
+
+    #[quickcheck]
+    fn commutes_hflip(sq: Square, blockers: BitBoard) -> bool {
+        rook_moves(sq.hflip(), blockers.hflip()) == rook_moves(sq, blockers).hflip()
+    }
+
+    #[quickcheck]
+    fn commutes_vflip(sq: Square, blockers: BitBoard) -> bool {
+        rook_moves(sq.vflip(), blockers.vflip()) == rook_moves(sq, blockers).vflip()
+    }
+
+    #[quickcheck]
+    fn commutes_reverse(sq: Square, blockers: BitBoard) -> bool {
+        rook_moves(sq.reverse(), blockers.reverse()) == rook_moves(sq, blockers).reverse()
+    }
 }

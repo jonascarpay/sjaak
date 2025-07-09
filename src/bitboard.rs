@@ -290,4 +290,19 @@ mod tests {
     fn flips_are_reverse(bb: BitBoard) -> bool {
         bb.vflip().hflip() == bb.reverse()
     }
+
+    #[quickcheck]
+    fn sq_hflip_tobitboard_commutes(sq: Square) -> bool {
+        sq.hflip().to_bitboard() == sq.to_bitboard().hflip()
+    }
+
+    #[quickcheck]
+    fn sq_vflip_tobitboard_commutes(sq: Square) -> bool {
+        sq.vflip().to_bitboard() == sq.to_bitboard().vflip()
+    }
+
+    #[quickcheck]
+    fn sq_reverse_tobitboard_commutes(sq: Square) -> bool {
+        sq.reverse().to_bitboard() == sq.to_bitboard().reverse()
+    }
 }

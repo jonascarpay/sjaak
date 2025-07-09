@@ -82,7 +82,25 @@ impl Square {
         !self.is_dark()
     }
 
-    #[inline]
+    pub const fn hflip(self) -> Square {
+        Square {
+            index: self.to_index() ^ 7,
+        }
+    }
+
+    pub const fn vflip(self) -> Square {
+        Square {
+            index: self.to_index() ^ 56,
+        }
+    }
+
+    pub const fn reverse(self) -> Square {
+        Square {
+            index: 63 - self.to_index(),
+        }
+    }
+
+    #[inline(always)]
     pub const fn offset(self, offset_file: i8, offset_rank: i8) -> Option<Square> {
         // cargo asm shows that in general this function optimizes/specializes very nicely
         let (rank, file) = self.to_coord();
@@ -468,5 +486,30 @@ pub mod tests {
         let is_id = dst == Some(src);
         let is_zero = offset_file == 0 && offset_rank == 0;
         is_id == is_zero
+    }
+
+    #[quickcheck]
+    fn hflip_involution(sq: Square) -> bool {
+        sq.hflip().hflip() == sq
+    }
+
+    #[quickcheck]
+    fn vflip_involution(sq: Square) -> bool {
+        sq.vflip().vflip() == sq
+    }
+
+    #[quickcheck]
+    fn reverse_involution(sq: Square) -> bool {
+        sq.reverse().reverse() == sq
+    }
+
+    #[quickcheck]
+    fn flips_commute(sq: Square) -> bool {
+        sq.vflip().hflip() == sq.hflip().vflip()
+    }
+
+    #[quickcheck]
+    fn flips_are_reverse(sq: Square) -> bool {
+        sq.vflip().hflip() == sq.reverse()
     }
 }

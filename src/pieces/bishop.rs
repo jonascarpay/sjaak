@@ -207,4 +207,19 @@ mod tests {
         let blockers = blockers.unset(sq);
         bishop_moves_magic(sq, blockers) == bishop_moves_magic_unsafe(sq, blockers)
     }
+
+    #[quickcheck]
+    fn commutes_hflip(sq: Square, blockers: BitBoard) -> bool {
+        bishop_moves(sq.hflip(), blockers.hflip()) == bishop_moves(sq, blockers).hflip()
+    }
+
+    #[quickcheck]
+    fn commutes_vflip(sq: Square, blockers: BitBoard) -> bool {
+        bishop_moves(sq.vflip(), blockers.vflip()) == bishop_moves(sq, blockers).vflip()
+    }
+
+    #[quickcheck]
+    fn commutes_reverse(sq: Square, blockers: BitBoard) -> bool {
+        bishop_moves(sq.reverse(), blockers.reverse()) == bishop_moves(sq, blockers).reverse()
+    }
 }
