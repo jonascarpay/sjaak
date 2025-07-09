@@ -94,6 +94,22 @@ impl BitBoard {
             bits: self.bits.reverse_bits(),
         }
     }
+    pub const fn vflip(self) -> BitBoard {
+        BitBoard::from_bits(self.to_bits().swap_bytes())
+    }
+    pub const fn hflip(self) -> BitBoard {
+        const K1: u64 = 0x5555555555555555; // ..01010101
+        const K2: u64 = 0x3333333333333333; // ..00110011
+        const K4: u64 = 0x0f0f0f0f0f0f0f0f; // ..00001111
+
+        let bits = self.to_bits();
+        let swap1 = ((bits >> 1) & K1) | ((bits & K1) << 1);
+        let swap2 = ((swap1 >> 2) & K2) | ((swap1 & K2) << 2);
+        let swap4 = ((swap2 >> 4) & K4) | ((swap2 & K4) << 4);
+
+        BitBoard::from_bits(swap4)
+    }
+
     pub const EMPTY: BitBoard = BitBoard { bits: 0 };
     pub const RIM: BitBoard = {
         Rank::R1
@@ -248,5 +264,30 @@ mod tests {
     fn square_to_bb_is_rank_file_bb_intersect(sq: Square) -> bool {
         let (rank, file) = sq.to_coord();
         sq.to_bitboard() == rank.to_bitboard().intersect(file.to_bitboard())
+    }
+
+    #[quickcheck]
+    fn hflip_involution(bb: BitBoard) -> bool {
+        bb.hflip().hflip() == bb
+    }
+
+    #[quickcheck]
+    fn vflip_involution(bb: BitBoard) -> bool {
+        bb.vflip().vflip() == bb
+    }
+
+    #[quickcheck]
+    fn reverse_involution(bb: BitBoard) -> bool {
+        bb.reverse().reverse() == bb
+    }
+
+    #[quickcheck]
+    fn flips_commute(bb: BitBoard) -> bool {
+        bb.vflip().hflip() == bb.hflip().vflip()
+    }
+
+    #[quickcheck]
+    fn flips_are_reverse(bb: BitBoard) -> bool {
+        bb.vflip().hflip() == bb.reverse()
     }
 }
