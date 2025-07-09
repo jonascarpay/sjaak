@@ -47,7 +47,7 @@ mod tests {
 
     use crate::{
         bitboard::BitBoard,
-        coord::{File, Rank, Square},
+        coord::Square,
         pieces::king::{king_moves, king_moves_cached, king_moves_cached_unsafe, king_moves_ref},
     };
 
