@@ -1,6 +1,6 @@
 use crate::{
     bitboard::BitBoard,
-    coord::{Rank, Square},
+    coord::Rank,
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -32,36 +32,24 @@ pub const fn black_pawn_attacks(black_pawns: BitBoard) -> BitBoard {
     BitBoard::from_bits(southwest_attackers.to_bits() >> 7 | southeast_attackers.to_bits() >> 9)
 }
 
-pub const fn piecewise_white_pawn_attack(sq: Square) -> BitBoard {
-    white_pawn_attacks(sq.to_bitboard())
-}
-
-pub const fn piecewise_black_pawn_attack(sq: Square) -> BitBoard {
-    black_pawn_attacks(sq.to_bitboard())
-}
-
-pub const fn white_pawn_pushes(white_pawns: BitBoard, blockers: BitBoard) -> BitBoard {
+pub const fn white_pawn_pushes(white_pawns: BitBoard, blockers: BitBoard) -> (BitBoard, BitBoard) {
     let empty_square = blockers.complement();
     let single_push = white_pawns.lshift(8).intersect(empty_square);
     let double_push = single_push
         .lshift(8)
         .intersect(empty_square)
         .intersect(Rank::R4.to_bitboard());
-    single_push.union(double_push)
+    (single_push, double_push)
 }
 
-pub const fn black_pawn_pushes(black_pawns: BitBoard, blockers: BitBoard) -> BitBoard {
+pub const fn black_pawn_pushes(black_pawns: BitBoard, blockers: BitBoard) -> (BitBoard, BitBoard) {
     let empty_square = blockers.complement();
     let single_push = black_pawns.rshift(8).intersect(empty_square);
     let double_push = single_push
         .rshift(8)
         .intersect(empty_square)
         .intersect(Rank::R5.to_bitboard());
-    single_push.union(double_push)
-}
-
-pub const fn piecewise_white_pawn_push(sq: Square, blockers: BitBoard) -> BitBoard {
-    white_pawn_pushes(sq.to_bitboard(), blockers)
+    (single_push, double_push)
 }
 
 #[cfg(test)]
@@ -72,8 +60,7 @@ mod tests {
         bitboard::BitBoard,
         coord::Square,
         pieces::pawn::{
-            black_pawn_attacks, black_pawn_pushes, piecewise_white_pawn_attack,
-            piecewise_white_pawn_push, white_pawn_attacks, white_pawn_pushes,
+            black_pawn_attacks, white_pawn_attacks, black_pawn_pushes, white_pawn_pushes,
         },
     };
 
@@ -82,21 +69,72 @@ mod tests {
     const PAWNS_ALLOWED: BitBoard = PAWNS_FORBIDDEN.complement();
 
     #[test]
-    fn unit() {
+    fn white_pawn_attack() {
+        let pawns = Square::from_str("d4").unwrap().to_bitboard();
         assert_eq!(
-            piecewise_white_pawn_attack(Square::from_str("d4").unwrap()),
-            BitBoard::from_bits(0x1400000000)
+            white_pawn_attacks(pawns),
+            Square::from_str("c5").unwrap().to_bitboard()
+                .union(Square::from_str("e5").unwrap().to_bitboard())
         );
+    }
+
+    #[test]
+    fn white_pawn_single_push() {
+        let pawns = Square::from_str("d4").unwrap().to_bitboard();
+        let (single, double) = white_pawn_pushes(pawns, BitBoard::EMPTY);
         assert_eq!(
-            piecewise_white_pawn_push(Square::from_str("d4").unwrap(), BitBoard::EMPTY),
+            single,
             Square::from_str("d5").unwrap().to_bitboard()
         );
+        assert_eq!(double, BitBoard::EMPTY);
+    }
+
+    #[test]
+    fn white_pawn_double_push() {
+        let pawns = Square::from_str("d2").unwrap().to_bitboard();
+        let (single, double) = white_pawn_pushes(pawns, BitBoard::EMPTY);
         assert_eq!(
-            piecewise_white_pawn_push(Square::from_str("d2").unwrap(), BitBoard::EMPTY),
-            Square::from_str("d3")
-                .unwrap()
-                .to_bitboard()
-                .union(Square::from_str("d4").unwrap().to_bitboard())
+            single,
+            Square::from_str("d3").unwrap().to_bitboard()
+        );
+        assert_eq!(
+            double,
+            Square::from_str("d4").unwrap().to_bitboard()
+        );
+    }
+
+    #[test]
+    fn black_pawn_attack() {
+        let pawns = Square::from_str("d4").unwrap().to_bitboard();
+        assert_eq!(
+            black_pawn_attacks(pawns),
+            Square::from_str("c3").unwrap().to_bitboard()
+                .union(Square::from_str("e3").unwrap().to_bitboard())
+        );
+    }
+
+    #[test]
+    fn black_pawn_single_push() {
+        let pawns = Square::from_str("d4").unwrap().to_bitboard();
+        let (single, double) = black_pawn_pushes(pawns, BitBoard::EMPTY);
+        assert_eq!(
+            single,
+            Square::from_str("d3").unwrap().to_bitboard()
+        );
+        assert_eq!(double, BitBoard::EMPTY);
+    }
+
+    #[test]
+    fn black_pawn_double_push() {
+        let pawns = Square::from_str("d7").unwrap().to_bitboard();
+        let (single, double) = black_pawn_pushes(pawns, BitBoard::EMPTY);
+        assert_eq!(
+            single,
+            Square::from_str("d6").unwrap().to_bitboard()
+        );
+        assert_eq!(
+            double,
+            Square::from_str("d5").unwrap().to_bitboard()
         );
     }
 
@@ -121,21 +159,24 @@ mod tests {
     #[quickcheck]
     fn pushes_are_symmetric_via_reverse(pawns: BitBoard, blockers: BitBoard) -> bool {
         let pawns = pawns.intersect(PAWNS_ALLOWED);
-        white_pawn_pushes(pawns, blockers)
-            == black_pawn_pushes(pawns.reverse(), blockers.reverse()).reverse()
+        let (w_single, w_double) = white_pawn_pushes(pawns, blockers);
+        let (b_single, b_double) = black_pawn_pushes(pawns.reverse(), blockers.reverse());
+        w_single == b_single.reverse() && w_double == b_double.reverse()
     }
 
     #[quickcheck]
     fn pushes_are_symmetric_via_vertical_flip(pawns: BitBoard, blockers: BitBoard) -> bool {
         let pawns = pawns.intersect(PAWNS_ALLOWED);
-        white_pawn_pushes(pawns, blockers)
-            == black_pawn_pushes(pawns.vflip(), blockers.vflip()).vflip()
+        let (w_single, w_double) = white_pawn_pushes(pawns, blockers);
+        let (b_single, b_double) = black_pawn_pushes(pawns.vflip(), blockers.vflip());
+        w_single == b_single.vflip() && w_double == b_double.vflip()
     }
 
     #[quickcheck]
     fn pushes_commute_with_horizontal_flip(pawns: BitBoard, blockers: BitBoard) -> bool {
         let pawns = pawns.intersect(PAWNS_ALLOWED);
-        white_pawn_pushes(pawns, blockers)
-            == white_pawn_pushes(pawns.hflip(), blockers.hflip()).hflip()
+        let (s1, d1) = white_pawn_pushes(pawns, blockers);
+        let (s2, d2) = white_pawn_pushes(pawns.hflip(), blockers.hflip());
+        s1 == s2.hflip() && d1 == d2.hflip()
     }
 }

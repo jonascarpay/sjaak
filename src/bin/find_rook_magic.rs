@@ -21,9 +21,9 @@ fn main() {
                     let best = { table.lock().unwrap()[index].0 };
                     let sq = Square::from_index(index as u8).unwrap();
                     let bits = index_bits(sq);
-                    if best == (1 << index_bits(sq)) {
-                        continue;
-                    }
+                    // if best == (1 << index_bits(sq)) {
+                    //     continue;
+                    // }
                     for _ in 0..0xFFFF {
                         let magic = MagicValue::random(&mut || rng.next_u64(), bits);
                         if let Some(new_best) = magic_lut_size(sq, magic, best) {
