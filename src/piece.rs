@@ -1,7 +1,7 @@
 use crate::{coord::Square, zobrist_table};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum PieceIndex {
+pub enum Piece {
     WhitePawn = 0,
     BlackPawn = 1,
     WhiteKnight = 2,
@@ -16,24 +16,38 @@ pub enum PieceIndex {
     BlackKing = 11,
 }
 
-impl PieceIndex {
+impl Piece {
     pub const fn to_side(self) -> Side {
-        // Checked that this optimizes away correctly
-        Side::from_index(self.to_index() & 1).unwrap()
+        Side::from_index(self.to_index() & 1).unwrap() // ASM checked
     }
-    pub const fn to_piece(self) -> Piece {
-        // Checked that this optimizes away correctly
-        Piece::from_index(self.to_index() >> 1).unwrap()
+    pub const fn to_piece(self) -> PieceType {
+        PieceType::from_index(self.to_index() >> 1).unwrap() // ASM checked
     }
-    pub const fn from_side_piece(side: Side, piece: Piece) -> PieceIndex {
-        // Checked that this optimizes away correctly
-        Self::from_index(piece.to_index() * 2 + side.to_index()).unwrap()
+    pub const fn from_side_piece(side: Side, piece: PieceType) -> Piece {
+        Self::from_index(piece.to_index() * 2 + side.to_index()).unwrap() // ASM checked
     }
     pub const fn to_index(self) -> u8 {
         self as u8
     }
     pub fn get_key(self, sq: Square) -> u64 {
-        zobrist_table::get_key(sq, self)
+        zobrist_table::get_key(sq, self) // ASM checked
+    }
+    pub fn flip_side(self) -> Self {
+        Self::from_index(self.to_index() ^ 1).unwrap() // ASM checked
+    }
+    pub fn is_black(self) -> bool {
+        self.to_side() == Side::Black
+    }
+    pub fn to_white(self) -> Self {
+        // A little ugly, but this is the only implementation I could find that optimizes correctly
+        if self.is_black() {
+            self.flip_side()
+        } else {
+            self
+        }
+    }
+    pub fn to_black(self) -> Self {
+        self.to_white().flip_side() // ASM checked
     }
     pub const fn from_index(index: u8) -> Option<Self> {
         match index {
@@ -85,8 +99,25 @@ impl PieceIndex {
             Self::BlackKing => 'k',
         }
     }
+    pub const fn to_unicode(self) -> char {
+        match self {
+            Self::WhitePawn => '♙',
+            Self::WhiteKnight => '♘',
+            Self::WhiteBishop => '♗',
+            Self::WhiteRook => '♖',
+            Self::WhiteQueen => '♕',
+            Self::WhiteKing => '♔',
+            Self::BlackPawn => '♟',
+            Self::BlackKnight => '♞',
+            Self::BlackBishop => '♝',
+            Self::BlackRook => '♜',
+            Self::BlackQueen => '♛',
+            Self::BlackKing => '♚',
+        }
+    }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Side {
     White = 0,
     Black = 1,
@@ -105,7 +136,7 @@ impl Side {
     }
 }
 
-pub enum Piece {
+pub enum PieceType {
     Pawn = 0,
     Knight = 1,
     Bishop = 2,
@@ -114,7 +145,7 @@ pub enum Piece {
     King = 5,
 }
 
-impl Piece {
+impl PieceType {
     pub const fn to_index(self) -> u8 {
         self as u8
     }
@@ -136,27 +167,27 @@ mod tests {
     use quickcheck::Arbitrary;
     use quickcheck_macros::quickcheck;
 
-    use super::PieceIndex;
+    use super::Piece;
 
-    impl Arbitrary for PieceIndex {
+    impl Arbitrary for Piece {
         fn arbitrary(g: &mut quickcheck::Gen) -> Self {
             let ix: usize = Arbitrary::arbitrary(g);
-            PieceIndex::from_index(ix as u8 % 12).unwrap()
+            Piece::from_index(ix as u8 % 12).unwrap()
         }
     }
 
     #[quickcheck]
-    fn fen_roundtrip(pc: PieceIndex) -> bool {
-        PieceIndex::from_fen_char(pc.to_fen_char()) == Some(pc)
+    fn fen_roundtrip(pc: Piece) -> bool {
+        Piece::from_fen_char(pc.to_fen_char()) == Some(pc)
     }
 
     #[quickcheck]
-    fn index_roundtrip(pc: PieceIndex) -> bool {
-        PieceIndex::from_index(pc.to_index()) == Some(pc)
+    fn index_roundtrip(pc: Piece) -> bool {
+        Piece::from_index(pc.to_index()) == Some(pc)
     }
 
     #[quickcheck]
-    fn side_piece_roundtrip(pc: PieceIndex) -> bool {
-        pc == PieceIndex::from_side_piece(pc.to_side(), pc.to_piece())
+    fn side_piece_roundtrip(pc: Piece) -> bool {
+        pc == Piece::from_side_piece(pc.to_side(), pc.to_piece())
     }
 }

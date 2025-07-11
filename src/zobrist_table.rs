@@ -1,4 +1,4 @@
-use crate::{coord::Square, piece::PieceIndex};
+use crate::{coord::Square, piece::Piece};
 
 const ZOBRIST_TABLE_SIZE: usize = 12 * 64;
 pub static ZOBRIST_TABLE: [u64; ZOBRIST_TABLE_SIZE] = {
@@ -12,16 +12,16 @@ pub static ZOBRIST_TABLE: [u64; ZOBRIST_TABLE_SIZE] = {
     table
 };
 
-pub const fn zobrist_index(sq: Square, piece: PieceIndex) -> usize {
+pub const fn zobrist_index(sq: Square, piece: Piece) -> usize {
     piece.to_index() as usize * 64 + sq.to_index() as usize
 }
 
 // TODO probably remove
-pub const fn get_key_const(sq: Square, piece: PieceIndex) -> u64 {
+pub const fn get_key_const(sq: Square, piece: Piece) -> u64 {
     ZOBRIST_TABLE[zobrist_index(sq, piece)]
 }
 
-pub fn get_key(sq: Square, piece: PieceIndex) -> u64 {
+pub fn get_key(sq: Square, piece: Piece) -> u64 {
     let index = zobrist_index(sq, piece);
     debug_assert!(index < ZOBRIST_TABLE_SIZE);
     unsafe { *ZOBRIST_TABLE.get_unchecked(index) }

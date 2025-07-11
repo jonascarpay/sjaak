@@ -4,7 +4,7 @@ use std::{
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-// TODO enum?
+// TODO enum? same as with Piece
 pub struct Square {
     index: u8,
 }

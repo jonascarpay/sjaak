@@ -1,7 +1,7 @@
 use crate::{
     bitboard::BitBoard,
     coord::Square,
-    piece::{PieceIndex, Side},
+    piece::{Piece, Side},
 };
 
 pub struct Position {
@@ -24,16 +24,16 @@ impl Position {
         todo!()
     }
 
-    pub fn get_board(&self, piece: PieceIndex) -> &BitBoard {
+    pub fn get_board(&self, piece: Piece) -> &BitBoard {
         unsafe { self.pieces.get_unchecked(piece.to_index() as usize) }
     }
 
-    pub fn get_board_mut(&mut self, piece: PieceIndex) -> &mut BitBoard {
+    pub fn get_board_mut(&mut self, piece: Piece) -> &mut BitBoard {
         &mut self.pieces[piece.to_index() as usize]
     }
 
     #[inline(never)]
-    pub fn add_piece(&mut self, piece: PieceIndex, sq: Square) {
+    pub fn add_piece(&mut self, piece: Piece, sq: Square) {
         self.get_board_mut(piece).set_assign(sq)
     }
 }
