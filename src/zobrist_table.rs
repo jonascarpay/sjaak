@@ -23,7 +23,6 @@ pub const fn get_key_const(sq: Square, piece: PieceIndex) -> u64 {
 
 pub fn get_key(sq: Square, piece: PieceIndex) -> u64 {
     let index = zobrist_index(sq, piece);
-    piece.debug_assert_valid();
     debug_assert!(index < ZOBRIST_TABLE_SIZE);
     unsafe { *ZOBRIST_TABLE.get_unchecked(index) }
 }

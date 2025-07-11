@@ -1,76 +1,89 @@
 use crate::{coord::Square, zobrist_table};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct PieceIndex {
-    index: u8,
+pub enum PieceIndex {
+    WhitePawn = 0,
+    BlackPawn = 1,
+    WhiteKnight = 2,
+    BlackKnight = 3,
+    WhiteBishop = 4,
+    BlackBishop = 5,
+    WhiteRook = 6,
+    BlackRook = 7,
+    WhiteQueen = 8,
+    BlackQueen = 9,
+    WhiteKing = 10,
+    BlackKing = 11,
 }
 
 impl PieceIndex {
-    pub const fn new(side: Side, piece: Piece) -> PieceIndex {
-        PieceIndex {
-            index: side as u8 + piece as u8 * 2,
-        }
-    }
     pub const fn to_side(self) -> Side {
-        if self.index & 1 == 0 {
-            Side::White
-        } else {
-            Side::Black
-        }
+        // Checked that this optimizes away correctly
+        Side::from_index(self.to_index() & 1).unwrap()
     }
     pub const fn to_piece(self) -> Piece {
-        match self.index >> 1 {
-            0 => Piece::Pawn,
-            1 => Piece::Knight,
-            2 => Piece::Bishop,
-            3 => Piece::Rook,
-            4 => Piece::Queen,
-            5 => Piece::King,
-            _ => unreachable!(),
-        }
+        // Checked that this optimizes away correctly
+        Piece::from_index(self.to_index() >> 1).unwrap()
+    }
+    pub const fn from_side_piece(side: Side, piece: Piece) -> PieceIndex {
+        // Checked that this optimizes away correctly
+        Self::from_index(piece.to_index() * 2 + side.to_index()).unwrap()
     }
     pub const fn to_index(self) -> u8 {
-        self.index
+        self as u8
     }
     pub fn get_key(self, sq: Square) -> u64 {
         zobrist_table::get_key(sq, self)
     }
+    pub const fn from_index(index: u8) -> Option<Self> {
+        match index {
+            0 => Some(Self::WhitePawn),
+            1 => Some(Self::BlackPawn),
+            2 => Some(Self::WhiteKnight),
+            3 => Some(Self::BlackKnight),
+            4 => Some(Self::WhiteBishop),
+            5 => Some(Self::BlackBishop),
+            6 => Some(Self::WhiteRook),
+            7 => Some(Self::BlackRook),
+            8 => Some(Self::WhiteQueen),
+            9 => Some(Self::BlackQueen),
+            10 => Some(Self::WhiteKing),
+            11 => Some(Self::BlackKing),
+            _ => None,
+        }
+    }
     pub const fn from_fen_char(char: char) -> Option<Self> {
-        use {Piece::*, Side::*};
         match char {
-            'P' => Some(Self::new(White, Pawn)),
-            'N' => Some(Self::new(White, Knight)),
-            'B' => Some(Self::new(White, Bishop)),
-            'R' => Some(Self::new(White, Rook)),
-            'Q' => Some(Self::new(White, Queen)),
-            'K' => Some(Self::new(White, King)),
-            'p' => Some(Self::new(Black, Pawn)),
-            'n' => Some(Self::new(Black, Knight)),
-            'b' => Some(Self::new(Black, Bishop)),
-            'r' => Some(Self::new(Black, Rook)),
-            'q' => Some(Self::new(Black, Queen)),
-            'k' => Some(Self::new(Black, King)),
+            'P' => Some(Self::WhitePawn),
+            'N' => Some(Self::WhiteKnight),
+            'B' => Some(Self::WhiteBishop),
+            'R' => Some(Self::WhiteRook),
+            'Q' => Some(Self::WhiteQueen),
+            'K' => Some(Self::WhiteKing),
+            'p' => Some(Self::BlackPawn),
+            'n' => Some(Self::BlackKnight),
+            'b' => Some(Self::BlackBishop),
+            'r' => Some(Self::BlackRook),
+            'q' => Some(Self::BlackQueen),
+            'k' => Some(Self::BlackKing),
             _ => None,
         }
     }
     pub const fn to_fen_char(self) -> char {
-        match (self.to_side(), self.to_piece()) {
-            (Side::White, Piece::Pawn) => 'P',
-            (Side::White, Piece::Knight) => 'N',
-            (Side::White, Piece::Bishop) => 'B',
-            (Side::White, Piece::Rook) => 'R',
-            (Side::White, Piece::Queen) => 'Q',
-            (Side::White, Piece::King) => 'K',
-            (Side::Black, Piece::Pawn) => 'p',
-            (Side::Black, Piece::Knight) => 'n',
-            (Side::Black, Piece::Bishop) => 'b',
-            (Side::Black, Piece::Rook) => 'r',
-            (Side::Black, Piece::Queen) => 'q',
-            (Side::Black, Piece::King) => 'k',
+        match self {
+            Self::WhitePawn => 'P',
+            Self::WhiteKnight => 'N',
+            Self::WhiteBishop => 'B',
+            Self::WhiteRook => 'R',
+            Self::WhiteQueen => 'Q',
+            Self::WhiteKing => 'K',
+            Self::BlackPawn => 'p',
+            Self::BlackKnight => 'n',
+            Self::BlackBishop => 'b',
+            Self::BlackRook => 'r',
+            Self::BlackQueen => 'q',
+            Self::BlackKing => 'k',
         }
-    }
-    pub fn debug_assert_valid(self) {
-        debug_assert!(self.to_index() < 12)
     }
 }
 
@@ -79,7 +92,19 @@ pub enum Side {
     Black = 1,
 }
 
-// TODO This -> PieceType and PieceIndex -> Piece?
+impl Side {
+    pub const fn from_index(index: u8) -> Option<Self> {
+        match index {
+            0 => Some(Self::White),
+            1 => Some(Self::Black),
+            _ => None,
+        }
+    }
+    pub const fn to_index(self) -> u8 {
+        self as u8
+    }
+}
+
 pub enum Piece {
     Pawn = 0,
     Knight = 1,
@@ -89,9 +114,20 @@ pub enum Piece {
     King = 5,
 }
 
-impl Side {
-    pub const fn to_index(self, piece: Piece) -> PieceIndex {
-        PieceIndex::new(self, piece)
+impl Piece {
+    pub const fn to_index(self) -> u8 {
+        self as u8
+    }
+    pub const fn from_index(index: u8) -> Option<Self> {
+        match index {
+            0 => Some(Self::Pawn),
+            1 => Some(Self::Knight),
+            2 => Some(Self::Bishop),
+            3 => Some(Self::Rook),
+            4 => Some(Self::Queen),
+            5 => Some(Self::King),
+            _ => None,
+        }
     }
 }
 
@@ -105,9 +141,7 @@ mod tests {
     impl Arbitrary for PieceIndex {
         fn arbitrary(g: &mut quickcheck::Gen) -> Self {
             let ix: usize = Arbitrary::arbitrary(g);
-            PieceIndex {
-                index: (ix % 12) as u8,
-            }
+            PieceIndex::from_index(ix as u8 % 12).unwrap()
         }
     }
 
@@ -117,7 +151,12 @@ mod tests {
     }
 
     #[quickcheck]
+    fn index_roundtrip(pc: PieceIndex) -> bool {
+        PieceIndex::from_index(pc.to_index()) == Some(pc)
+    }
+
+    #[quickcheck]
     fn side_piece_roundtrip(pc: PieceIndex) -> bool {
-        pc == PieceIndex::new(pc.to_side(), pc.to_piece())
+        pc == PieceIndex::from_side_piece(pc.to_side(), pc.to_piece())
     }
 }
