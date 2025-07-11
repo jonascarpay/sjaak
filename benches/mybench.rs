@@ -4,13 +4,22 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use shah::{
     bitboard::BitBoard,
     coord::{File, Rank, Square},
-    pieces::{bishop, rook},
+    pieces::{
+        bishop::{
+            fast::{bishop_moves_magic, bishop_moves_magic_unsafe},
+            reference::bishop_moves_reference,
+        },
+        rook::{
+            fast::{rook_moves_magic, rook_moves_magic_unsafe},
+            reference::rook_moves_reference,
+        },
+    },
 };
 
 fn bishop(c: &mut Criterion) {
     c.bench_function("bishop ref", |b| {
         b.iter(|| {
-            bishop::bishop_moves_ref(
+            bishop_moves_reference(
                 black_box(Square::from_coord(File::FA, Rank::R1)),
                 black_box(BitBoard::from_bits(0x123123123)),
             )
@@ -18,7 +27,7 @@ fn bishop(c: &mut Criterion) {
     });
     c.bench_function("bishop magic", |b| {
         b.iter(|| {
-            bishop::bishop_moves_magic(
+            bishop_moves_magic(
                 black_box(Square::from_coord(File::FA, Rank::R1)),
                 black_box(BitBoard::from_bits(0x123123123)),
             )
@@ -26,7 +35,7 @@ fn bishop(c: &mut Criterion) {
     });
     c.bench_function("bishop magic unsafe", |b| {
         b.iter(|| {
-            bishop::bishop_moves_magic_unsafe(
+            bishop_moves_magic_unsafe(
                 black_box(Square::from_coord(File::FA, Rank::R1)),
                 black_box(BitBoard::from_bits(0x123123123)),
             )
@@ -37,7 +46,7 @@ fn bishop(c: &mut Criterion) {
 fn rook(c: &mut Criterion) {
     c.bench_function("rook ref", |b| {
         b.iter(|| {
-            rook::rook_moves_ref(
+            rook_moves_reference(
                 black_box(Square::from_coord(File::FA, Rank::R1)),
                 black_box(BitBoard::from_bits(0x123123123)),
             )
@@ -45,7 +54,7 @@ fn rook(c: &mut Criterion) {
     });
     c.bench_function("rook magic", |b| {
         b.iter(|| {
-            rook::rook_moves_magic(
+            rook_moves_magic(
                 black_box(Square::from_coord(File::FA, Rank::R1)),
                 black_box(BitBoard::from_bits(0x123123123)),
             )
@@ -53,7 +62,7 @@ fn rook(c: &mut Criterion) {
     });
     c.bench_function("rook magic unsafe", |b| {
         b.iter(|| {
-            rook::rook_moves_magic_unsafe(
+            rook_moves_magic_unsafe(
                 black_box(Square::from_coord(File::FA, Rank::R1)),
                 black_box(BitBoard::from_bits(0x123123123)),
             )

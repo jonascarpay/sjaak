@@ -1,67 +1,13 @@
-use crate::{bitboard::BitBoard, coord::Square};
+use crate::{bitboard::BitBoard, coord::Square, pieces::magic_value::MagicValue};
 
-use super::magic_value::MagicValue;
+use super::reference::bishop_moves_reference;
 
-#[cfg(not(debug_assertions))]
-pub fn bishop_moves(sq: Square, blockers: BitBoard) -> BitBoard {
-    bishop_moves_magic_unsafe(sq, blockers)
-}
-
-#[cfg(debug_assertions)]
-pub const fn bishop_moves(sq: Square, blockers: BitBoard) -> BitBoard {
-    bishop_moves_ref(sq, blockers)
-}
-
-pub const fn bishop_moves_ref(sq: Square, blockers: BitBoard) -> BitBoard {
-    let mut bb = BitBoard::new();
-
-    let mut northeast = sq.northeast();
-    while let Some(sq) = northeast {
-        bb.set_assign(sq);
-        if blockers.contains(sq) {
-            break;
-        }
-        northeast = sq.northeast();
-    }
-
-    let mut northwest = sq.northwest();
-    while let Some(sq) = northwest {
-        bb.set_assign(sq);
-        if blockers.contains(sq) {
-            break;
-        }
-        northwest = sq.northwest();
-    }
-
-    let mut southeast = sq.southeast();
-    while let Some(sq) = southeast {
-        bb.set_assign(sq);
-        if blockers.contains(sq) {
-            break;
-        }
-        southeast = sq.southeast();
-    }
-
-    let mut southwest = sq.southwest();
-    while let Some(sq) = southwest {
-        bb.set_assign(sq);
-        if blockers.contains(sq) {
-            break;
-        }
-        southwest = sq.southwest();
-    }
-
-    bb
-}
-
-// TODO this seems to somehow be faster than the unsafe version, bechmark in a larger application
 pub const fn bishop_moves_magic(sq: Square, blockers: BitBoard) -> BitBoard {
     let (offset, mask, magic) = BISHOP_TABLE_INDEX[sq.to_index() as usize];
     let index = offset + magic.to_index(mask.intersect(blockers), BISHOP_INDEX_BITS);
     BISHOP_TABLE[index]
 }
 
-// TODO this seems to somehow be faster than the unsafe version, bechmark in a larger application
 pub fn bishop_moves_magic_unsafe(sq: Square, blockers: BitBoard) -> BitBoard {
     let (offset, mask, magic) = unsafe { BISHOP_TABLE_INDEX.get_unchecked(sq.to_index() as usize) };
     let index = offset + magic.to_index(mask.intersect(blockers), BISHOP_INDEX_BITS);
@@ -69,7 +15,7 @@ pub fn bishop_moves_magic_unsafe(sq: Square, blockers: BitBoard) -> BitBoard {
 }
 
 const fn blocker_squares(sq: Square) -> BitBoard {
-    bishop_moves_ref(sq, BitBoard::EMPTY).intersect(BitBoard::RIM.complement())
+    bishop_moves_reference(sq, BitBoard::EMPTY).intersect(BitBoard::RIM.complement())
 }
 
 pub const BISHOP_INDEX_BITS: u8 = 9;
@@ -116,7 +62,6 @@ const BISHOP_TABLE_SIZE: usize = {
 };
 
 #[allow(long_running_const_eval)]
-#[cfg(not(debug_assertions))]
 static BISHOP_TABLE: [BitBoard; BISHOP_TABLE_SIZE] = {
     let mut table = [BitBoard::EMPTY; BISHOP_TABLE_SIZE];
     let mut i = 0;
@@ -127,22 +72,18 @@ static BISHOP_TABLE: [BitBoard; BISHOP_TABLE_SIZE] = {
         let mut blockers = blocker_squares(sq).powerset();
         while let Some(blockers) = blockers.pop() {
             let index = magic.to_index(blockers, BISHOP_INDEX_BITS);
-            table[table_offset + index] = bishop_moves_ref(sq, blockers);
+            table[table_offset + index] = bishop_moves_reference(sq, blockers);
         }
         i += 1;
     }
     table
 };
 
-#[allow(long_running_const_eval)]
-#[cfg(debug_assertions)]
-static BISHOP_TABLE: [BitBoard; BISHOP_TABLE_SIZE] = [BitBoard::EMPTY; BISHOP_TABLE_SIZE];
-
 pub fn magic_lut_size(sq: Square, magic: MagicValue, max_size: usize) -> Option<usize> {
     let mut max_index = 0;
     let mut lut = vec![BitBoard::EMPTY; max_size];
     for blockers in blocker_squares(sq).powerset() {
-        let moves = bishop_moves_ref(sq, blockers);
+        let moves = bishop_moves_reference(sq, blockers);
         let index = magic.to_index(blockers, 9);
         if index < max_size {
             let entry = &mut lut[index];
@@ -167,8 +108,8 @@ mod tests {
         bitboard::BitBoard,
         coord::Square,
         pieces::bishop::{
-            bishop_moves, bishop_moves_magic, bishop_moves_magic_unsafe, bishop_moves_ref,
-            blocker_squares,
+            magic::{bishop_moves_magic, bishop_moves_magic_unsafe, blocker_squares},
+            reference::bishop_moves_reference,
         },
     };
 
@@ -185,15 +126,9 @@ mod tests {
     }
 
     #[quickcheck]
-    fn rim_blockers_dont_matter(sq: Square, blockers: BitBoard) -> bool {
-        bishop_moves_ref(sq, blockers)
-            == bishop_moves_ref(sq, blockers.intersect(BitBoard::RIM.complement()))
-    }
-
-    #[quickcheck]
     fn bishop_moves_magic_matches_ref(sq: Square, blockers: BitBoard) -> bool {
         let blockers = blockers.unset(sq);
-        bishop_moves_ref(sq, blockers) == bishop_moves(sq, blockers)
+        bishop_moves_reference(sq, blockers) == bishop_moves_magic(sq, blockers)
     }
 
     #[quickcheck]
@@ -206,20 +141,5 @@ mod tests {
     fn magic_safe_is_unsafe(sq: Square, blockers: BitBoard) -> bool {
         let blockers = blockers.unset(sq);
         bishop_moves_magic(sq, blockers) == bishop_moves_magic_unsafe(sq, blockers)
-    }
-
-    #[quickcheck]
-    fn commutes_hflip(sq: Square, blockers: BitBoard) -> bool {
-        bishop_moves(sq.hflip(), blockers.hflip()) == bishop_moves(sq, blockers).hflip()
-    }
-
-    #[quickcheck]
-    fn commutes_vflip(sq: Square, blockers: BitBoard) -> bool {
-        bishop_moves(sq.vflip(), blockers.vflip()) == bishop_moves(sq, blockers).vflip()
-    }
-
-    #[quickcheck]
-    fn commutes_reverse(sq: Square, blockers: BitBoard) -> bool {
-        bishop_moves(sq.reverse(), blockers.reverse()) == bishop_moves(sq, blockers).reverse()
     }
 }

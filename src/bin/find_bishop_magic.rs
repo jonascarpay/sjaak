@@ -1,7 +1,7 @@
 use shah::{
     coord::{File, Square},
     pieces::{
-        bishop::{magic_lut_size, BISHOP_INDEX_BITS, BISHOP_MAGICS},
+        bishop::magic::{magic_lut_size, BISHOP_INDEX_BITS, BISHOP_MAGICS},
         magic_value::MagicValue,
     },
 };

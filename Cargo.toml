@@ -13,6 +13,18 @@ num_cpus = "1.17.0"
 tinyrand = "0.5.0"
 tinyrand-std = "0.5.0"
 
+[features]
+default = []
+magic_bitboards = []
+
+[[bin]]
+name = "find_rook_magic"
+required-features = ["magic_bitboards"]
+
+[[bin]]
+name = "find_bishop_magic"
+required-features = ["magic_bitboards"]
+
 [[bench]]
 name = "mybench"
 harness = false

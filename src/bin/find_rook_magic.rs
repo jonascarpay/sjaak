@@ -2,7 +2,7 @@ use shah::{
     coord::{File, Square},
     pieces::{
         magic_value::MagicValue,
-        rook::{index_bits, magic_lut_size, ROOK_MAGICS},
+        rook::magic::{index_bits, magic_lut_size, ROOK_MAGICS},
     },
 };
 use std::{sync::Mutex, thread};

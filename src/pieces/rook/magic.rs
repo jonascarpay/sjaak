@@ -1,58 +1,6 @@
-use crate::{bitboard::BitBoard, coord::Square};
+use crate::{bitboard::BitBoard, coord::Square, pieces::magic_value::MagicValue};
 
-use super::magic_value::MagicValue;
-
-#[cfg(not(debug_assertions))]
-pub fn rook_moves(sq: Square, blockers: BitBoard) -> BitBoard {
-    rook_moves_magic_unsafe(sq, blockers)
-}
-
-#[cfg(debug_assertions)]
-pub fn rook_moves(sq: Square, blockers: BitBoard) -> BitBoard {
-    rook_moves_ref(sq, blockers)
-}
-
-pub const fn rook_moves_ref(sq: Square, blockers: BitBoard) -> BitBoard {
-    let mut bb = BitBoard::new();
-
-    let mut east = sq.east();
-    while let Some(sq) = east {
-        bb.set_assign(sq);
-        if blockers.contains(sq) {
-            break;
-        }
-        east = sq.east();
-    }
-
-    let mut north = sq.north();
-    while let Some(sq) = north {
-        bb.set_assign(sq);
-        if blockers.contains(sq) {
-            break;
-        }
-        north = sq.north();
-    }
-
-    let mut west = sq.west();
-    while let Some(sq) = west {
-        bb.set_assign(sq);
-        if blockers.contains(sq) {
-            break;
-        }
-        west = sq.west();
-    }
-
-    let mut south = sq.south();
-    while let Some(sq) = south {
-        bb.set_assign(sq);
-        if blockers.contains(sq) {
-            break;
-        }
-        south = sq.south();
-    }
-
-    bb
-}
+use super::reference::rook_moves_reference;
 
 pub const fn rook_moves_magic(sq: Square, blockers: BitBoard) -> BitBoard {
     let (offset, mask, magic) = ROOK_TABLE_INDEX[sq.to_index() as usize];
@@ -118,7 +66,6 @@ const ROOK_TABLE_SIZE: usize = {
     total
 };
 
-#[cfg(not(debug_assertions))]
 #[allow(long_running_const_eval)]
 static ROOK_TABLE: [BitBoard; ROOK_TABLE_SIZE] = {
     let mut table = [BitBoard::EMPTY; ROOK_TABLE_SIZE];
@@ -130,21 +77,18 @@ static ROOK_TABLE: [BitBoard; ROOK_TABLE_SIZE] = {
         let mut blockers = blocker_squares(sq).powerset();
         while let Some(blockers) = blockers.pop() {
             let index = magic.to_index(blockers, ROOK_INDEX_BITS);
-            table[table_offset + index] = rook_moves_ref(sq, blockers);
+            table[table_offset + index] = rook_moves_reference(sq, blockers);
         }
         i += 1;
     }
     table
 };
 
-#[cfg(debug_assertions)]
-static ROOK_TABLE: [BitBoard; ROOK_TABLE_SIZE] = [BitBoard::EMPTY; ROOK_TABLE_SIZE];
-
 pub fn magic_lut_size(sq: Square, magic: MagicValue, max_size: usize) -> Option<usize> {
     let mut max_index = 0;
     let mut lut = vec![BitBoard::EMPTY; max_size];
     for blockers in blocker_squares(sq).powerset() {
-        let moves = rook_moves(sq, blockers);
+        let moves = rook_moves_reference(sq, blockers);
         let index = magic.to_index(blockers, ROOK_INDEX_BITS);
         if index < max_size {
             let entry = &mut lut[index];
@@ -176,8 +120,8 @@ mod tests {
         bitboard::BitBoard,
         coord::Square,
         pieces::rook::{
-            blocker_squares, index_bits, rook_moves, rook_moves_magic, rook_moves_magic_unsafe,
-            rook_moves_ref,
+            magic::{blocker_squares, index_bits, rook_moves_magic, rook_moves_magic_unsafe},
+            reference::rook_moves_reference,
         },
     };
 
@@ -194,27 +138,6 @@ mod tests {
     }
 
     #[quickcheck]
-    fn rook_moves_iter_no_mask_is_const(sq: Square) -> bool {
-        let (rank, file) = sq.to_coord();
-        let bb_ref = rank.to_bitboard().symmetric_difference(file.to_bitboard());
-        let bb = rook_moves_ref(sq, BitBoard::EMPTY);
-        bb == bb_ref
-    }
-
-    #[quickcheck]
-    fn rim_blockers_dont_matter(sq: Square, blockers: BitBoard) -> bool {
-        BitBoard::RIM.contains(sq)
-            || rook_moves_ref(sq, BitBoard::RIM.intersect(blockers))
-                == rook_moves_ref(sq, BitBoard::EMPTY)
-    }
-
-    #[quickcheck]
-    fn rook_moves_magic_matches_ref(sq: Square, blockers: BitBoard) -> bool {
-        let blockers = blockers.unset(sq);
-        rook_moves_ref(sq, blockers) == rook_moves(sq, blockers)
-    }
-
-    #[quickcheck]
     fn blocker_mask_size(sq: Square) -> bool {
         let l = blocker_squares(sq).len();
         l >= 10 && l <= 12
@@ -226,23 +149,14 @@ mod tests {
     }
 
     #[quickcheck]
+    fn rook_moves_magic_matches_ref(sq: Square, blockers: BitBoard) -> bool {
+        let blockers = blockers.unset(sq);
+        rook_moves_reference(sq, blockers) == rook_moves_magic(sq, blockers)
+    }
+
+    #[quickcheck]
     fn magic_safe_is_unsafe(sq: Square, blockers: BitBoard) -> bool {
         let blockers = blockers.unset(sq);
         rook_moves_magic(sq, blockers) == rook_moves_magic_unsafe(sq, blockers)
-    }
-
-    #[quickcheck]
-    fn commutes_hflip(sq: Square, blockers: BitBoard) -> bool {
-        rook_moves(sq.hflip(), blockers.hflip()) == rook_moves(sq, blockers).hflip()
-    }
-
-    #[quickcheck]
-    fn commutes_vflip(sq: Square, blockers: BitBoard) -> bool {
-        rook_moves(sq.vflip(), blockers.vflip()) == rook_moves(sq, blockers).vflip()
-    }
-
-    #[quickcheck]
-    fn commutes_reverse(sq: Square, blockers: BitBoard) -> bool {
-        rook_moves(sq.reverse(), blockers.reverse()) == rook_moves(sq, blockers).reverse()
     }
 }
