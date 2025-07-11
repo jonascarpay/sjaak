@@ -20,7 +20,7 @@ fn bishop(c: &mut Criterion) {
     c.bench_function("bishop ref", |b| {
         b.iter(|| {
             bishop_moves_reference(
-                black_box(Square::from_coord(File::FA, Rank::R1)),
+                black_box(Square::A1),
                 black_box(BitBoard::from_bits(0x123123123)),
             )
         });
@@ -28,7 +28,7 @@ fn bishop(c: &mut Criterion) {
     c.bench_function("bishop magic", |b| {
         b.iter(|| {
             bishop_moves_magic(
-                black_box(Square::from_coord(File::FA, Rank::R1)),
+                black_box(Square::A1),
                 black_box(BitBoard::from_bits(0x123123123)),
             )
         });
@@ -36,7 +36,7 @@ fn bishop(c: &mut Criterion) {
     c.bench_function("bishop magic unsafe", |b| {
         b.iter(|| {
             bishop_moves_magic_unsafe(
-                black_box(Square::from_coord(File::FA, Rank::R1)),
+                black_box(Square::A1),
                 black_box(BitBoard::from_bits(0x123123123)),
             )
         });
@@ -47,7 +47,7 @@ fn rook(c: &mut Criterion) {
     c.bench_function("rook ref", |b| {
         b.iter(|| {
             rook_moves_reference(
-                black_box(Square::from_coord(File::FA, Rank::R1)),
+                black_box(Square::A1),
                 black_box(BitBoard::from_bits(0x123123123)),
             )
         });
@@ -55,7 +55,7 @@ fn rook(c: &mut Criterion) {
     c.bench_function("rook magic", |b| {
         b.iter(|| {
             rook_moves_magic(
-                black_box(Square::from_coord(File::FA, Rank::R1)),
+                black_box(Square::A1),
                 black_box(BitBoard::from_bits(0x123123123)),
             )
         });
@@ -63,7 +63,7 @@ fn rook(c: &mut Criterion) {
     c.bench_function("rook magic unsafe", |b| {
         b.iter(|| {
             rook_moves_magic_unsafe(
-                black_box(Square::from_coord(File::FA, Rank::R1)),
+                black_box(Square::A1),
                 black_box(BitBoard::from_bits(0x123123123)),
             )
         });
