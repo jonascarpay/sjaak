@@ -1,4 +1,4 @@
-use shah::{
+use sjaak::{
     coord::{File, Square},
     pieces::{
         magic_value::MagicValue,

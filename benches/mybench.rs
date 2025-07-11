@@ -1,7 +1,7 @@
 use std::hint::black_box;
 
 use criterion::{criterion_group, criterion_main, Criterion};
-use shah::{
+use sjaak::{
     bitboard::BitBoard,
     coord::{File, Rank, Square},
     pieces::{

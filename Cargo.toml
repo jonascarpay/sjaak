@@ -1,5 +1,5 @@
 [package]
-name = "shah"
+name = "sjaak"
 version = "0.1.0"
 edition = "2024"
 
@@ -28,6 +28,7 @@ required-features = ["magic_bitboards"]
 [[bench]]
 name = "mybench"
 harness = false
+required-features = ["magic_bitboards"]
 
 [profile.release]
 lto = true

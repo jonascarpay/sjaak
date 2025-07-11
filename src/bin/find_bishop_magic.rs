@@ -1,4 +1,4 @@
-use shah::{
+use sjaak::{
     coord::{File, Square},
     pieces::{
         bishop::magic::{magic_lut_size, BISHOP_INDEX_BITS, BISHOP_MAGICS},

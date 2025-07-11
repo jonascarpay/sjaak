@@ -13,7 +13,7 @@
           overlays = [
             rust-overlay.overlays.default
             (final: prev: {
-              shah = final.callPackage shah-pkg { };
+              sjaak = final.callPackage sjaak-pkg { };
             })
           ];
         };
@@ -30,8 +30,8 @@
           ];
         };
 
-        shah-pkg = { rustPlatform }: rustPlatform.buildRustPackage {
-          pname = "shah";
+        sjaak-pkg = { rustPlatform }: rustPlatform.buildRustPackage {
+          pname = "sjaak";
           version = "0.1";
           src = ./.;
           cargoLock.lockFile = ./Cargo.lock;
@@ -46,9 +46,9 @@
           ];
         };
         packages = rec {
-          default = shah;
-          shah = pkgs.shah;
-          shah-static = pkgs.pkgsStatic.shah;
+          default = sjaak;
+          sjaak = pkgs.sjaak;
+          sjaak-static = pkgs.pkgsStatic.sjaak;
           rb = pkgs.rust-bin;
         };
       };
