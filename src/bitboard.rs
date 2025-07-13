@@ -72,6 +72,14 @@ impl BitBoard {
         BitBoard { bits }
     }
 
+    pub const fn get_square(self) -> Option<Square> {
+        Square::from_index(self.bits.trailing_zeros() as u8)
+    }
+
+    pub const fn popcount(self) -> u32 {
+        self.bits.count_ones()
+    }
+
     // Set theory //
     pub const fn union(self, rhs: BitBoard) -> BitBoard {
         BitBoard {
@@ -85,6 +93,11 @@ impl BitBoard {
     }
     pub const fn complement(self) -> BitBoard {
         BitBoard { bits: !self.bits }
+    }
+    pub const fn difference(self, rhs: BitBoard) -> BitBoard {
+        BitBoard {
+            bits: self.bits & !rhs.bits,
+        }
     }
     pub const fn symmetric_difference(self, rhs: BitBoard) -> BitBoard {
         BitBoard {
@@ -121,6 +134,8 @@ impl BitBoard {
 
     pub const EMPTY: BitBoard = BitBoard { bits: 0 };
     pub const R1: BitBoard = Rank::R1.to_bitboard();
+    pub const R2: BitBoard = Rank::R2.to_bitboard();
+    pub const R7: BitBoard = Rank::R7.to_bitboard();
     pub const R8: BitBoard = Rank::R8.to_bitboard();
     pub const FA: BitBoard = File::FA.to_bitboard();
     pub const FH: BitBoard = File::FH.to_bitboard();
@@ -131,18 +146,13 @@ impl Iterator for BitBoard {
     type Item = Square;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.bits == 0 {
-            None
-        } else {
-            let ix = self.bits.ilog2() as u8;
-            let sq = Square::from_index(ix).unwrap();
-            self.unset_assign(sq);
-            Some(sq)
-        }
+        let sq = Square::from_index(self.bits.trailing_zeros() as u8)?;
+        self.bits &= self.bits - 1;
+        Some(sq)
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let len = self.to_bits().count_ones() as usize;
+        let len = self.popcount() as usize;
         (len, Some(len))
     }
 }
@@ -170,29 +180,17 @@ impl Square {
             bits: 1 << self.to_index(),
         }
     }
-    pub fn bishop_moves(self) -> BitBoard {
-        todo!()
-    }
-    pub fn rook_moves(self) -> BitBoard {
-        todo!()
-    }
-    pub fn queen_moves(self) -> BitBoard {
-        self.rook_moves().union(self.bishop_moves())
-    }
-    pub fn king_moves(self) -> BitBoard {
-        todo!()
-    }
 }
 
 impl Rank {
     pub const fn to_bitboard(self) -> BitBoard {
-        BitBoard::from_bits(0xFF << (self.to_u8() << 3))
+        BitBoard::from_bits(0xFF << (self.to_index() << 3))
     }
 }
 
 impl File {
     pub const fn to_bitboard(self) -> BitBoard {
-        BitBoard::from_bits(0x0101_0101_0101_0101 << self.to_u8())
+        BitBoard::from_bits(0x0101_0101_0101_0101 << self.to_index())
     }
 }
 
@@ -311,5 +309,19 @@ mod tests {
     #[quickcheck]
     fn sq_reverse_tobitboard_commutes(sq: Square) -> bool {
         sq.reverse().to_bitboard() == sq.to_bitboard().reverse()
+    }
+
+    #[quickcheck]
+    fn difference_plus_intersections_is_id(a: BitBoard, b: BitBoard) -> bool {
+        let diff = a.difference(b);
+        let int = a.intersect(b);
+        diff.union(int) == a
+    }
+
+    #[quickcheck]
+    fn difference_minus_intersections_is_empty(a: BitBoard, b: BitBoard) -> bool {
+        let diff = a.difference(b);
+        let int = a.intersect(b);
+        diff.intersect(int).is_empty()
     }
 }

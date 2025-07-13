@@ -17,10 +17,10 @@ pub enum Piece {
 }
 
 impl Piece {
-    pub const fn to_side(self) -> Side {
+    pub const fn side(self) -> Side {
         Side::from_index(self.to_index() & 1).unwrap() // ASM checked
     }
-    pub const fn to_piece(self) -> PieceType {
+    pub const fn piece_type(self) -> PieceType {
         PieceType::from_index(self.to_index() >> 1).unwrap() // ASM checked
     }
     pub const fn from_side_piece(side: Side, piece: PieceType) -> Piece {
@@ -36,8 +36,9 @@ impl Piece {
         Self::from_index(self.to_index() ^ 1).unwrap() // ASM checked
     }
     pub fn is_black(self) -> bool {
-        self.to_side() == Side::Black
+        self.side() == Side::Black
     }
+    #[inline]
     pub fn to_white(self) -> Self {
         // A little ugly, but this is the only implementation I could find that optimizes correctly
         if self.is_black() {
@@ -46,6 +47,7 @@ impl Piece {
             self
         }
     }
+    #[inline]
     pub fn to_black(self) -> Self {
         self.to_white().flip_side() // ASM checked
     }
@@ -134,6 +136,12 @@ impl Side {
     pub const fn to_index(self) -> u8 {
         self as u8
     }
+    pub const fn opponent(self) -> Side {
+        match self {
+            Side::White => Side::Black,
+            Side::Black => Side::White,
+        }
+    }
 }
 
 pub enum PieceType {
@@ -158,6 +166,21 @@ impl PieceType {
             4 => Some(Self::Queen),
             5 => Some(Self::King),
             _ => None,
+        }
+    }
+    pub const fn is_slider(self) -> bool {
+        match self {
+            PieceType::Bishop => true,
+            PieceType::Rook => true,
+            PieceType::Queen => true,
+            _ => false,
+        }
+    }
+    pub const fn is_jumper(self) -> bool {
+        match self {
+            PieceType::Knight => true,
+            PieceType::King => true,
+            _ => false,
         }
     }
 }
@@ -188,6 +211,6 @@ mod tests {
 
     #[quickcheck]
     fn side_piece_roundtrip(pc: Piece) -> bool {
-        pc == Piece::from_side_piece(pc.to_side(), pc.to_piece())
+        pc == Piece::from_side_piece(pc.side(), pc.piece_type())
     }
 }

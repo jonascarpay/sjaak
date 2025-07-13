@@ -30,7 +30,7 @@ impl Square {
         }
     }
     pub const fn from_coord(file: File, rank: Rank) -> Self {
-        Self::from_xy(file.to_u8(), rank.to_u8())
+        Self::from_xy(file.to_index(), rank.to_index())
     }
     pub const fn to_index(self) -> u8 {
         self.index
@@ -50,7 +50,7 @@ impl Square {
     }
     pub const fn to_coord(self) -> (Rank, File) {
         let (x, y) = self.to_xy();
-        (Rank::from_u8(y).unwrap(), File::from_u8(x).unwrap())
+        (Rank::from_index(y).unwrap(), File::from_index(x).unwrap())
     }
     pub const fn from_chars(file: char, rank: char) -> Option<Self> {
         let rank = Rank::from_char(rank);
@@ -227,6 +227,12 @@ impl Rank {
             Rank::R8 => '8',
         }
     }
+    pub const fn from_ascii(byte: u8) -> Option<Self> {
+        match char::from_u32(byte as u32) {
+            None => None,
+            Some(c) => Self::from_char(c),
+        }
+    }
     pub const fn from_char(char: char) -> Option<Self> {
         match char {
             '1' => Some(Rank::R1),
@@ -241,11 +247,11 @@ impl Rank {
         }
     }
     #[inline]
-    pub const fn to_u8(self) -> u8 {
+    pub const fn to_index(self) -> u8 {
         self as u8
     }
     #[inline]
-    pub const fn from_u8(value: u8) -> Option<Rank> {
+    pub const fn from_index(value: u8) -> Option<Rank> {
         match value {
             0 => Some(Rank::R1),
             1 => Some(Rank::R2),
@@ -262,7 +268,7 @@ impl Rank {
     #[inline]
     const fn offset(self, offset: i8) -> Option<Self> {
         // verified by cargo asm that this optimizes/specializes nicely
-        Self::from_u8((self.to_u8() as i8 + offset) as u8)
+        Self::from_index((self.to_index() as i8 + offset) as u8)
     }
 }
 
@@ -289,6 +295,12 @@ impl File {
             File::FH => 'h',
         }
     }
+    pub const fn from_ascii(byte: u8) -> Option<Self> {
+        match char::from_u32(byte as u32) {
+            None => None,
+            Some(char) => Self::from_char(char),
+        }
+    }
     pub const fn from_char(char: char) -> Option<Self> {
         match char {
             'A' => Some(File::FA),
@@ -311,11 +323,11 @@ impl File {
         }
     }
     #[inline]
-    pub const fn to_u8(self) -> u8 {
+    pub const fn to_index(self) -> u8 {
         self as u8
     }
     #[inline]
-    pub const fn from_u8(value: u8) -> Option<File> {
+    pub const fn from_index(value: u8) -> Option<File> {
         match value {
             0 => Some(File::FA),
             1 => Some(File::FB),
@@ -331,7 +343,7 @@ impl File {
 
     #[inline]
     const fn offset(self, offset: i8) -> Option<Self> {
-        Self::from_u8((self.to_u8() as i8 + offset) as u8)
+        Self::from_index((self.to_index() as i8 + offset) as u8)
     }
 }
 
@@ -416,14 +428,14 @@ impl File {
 impl TryFrom<u8> for Rank {
     type Error = ();
     fn try_from(value: u8) -> Result<Self, Self::Error> {
-        Rank::from_u8(value).ok_or(())
+        Rank::from_index(value).ok_or(())
     }
 }
 
 impl TryFrom<u8> for File {
     type Error = ();
     fn try_from(value: u8) -> Result<Self, Self::Error> {
-        File::from_u8(value).ok_or(())
+        File::from_index(value).ok_or(())
     }
 }
 
@@ -437,14 +449,14 @@ pub mod tests {
     impl Arbitrary for Rank {
         fn arbitrary(g: &mut quickcheck::Gen) -> Self {
             let value: u8 = Arbitrary::arbitrary(g);
-            Rank::from_u8(value % 8).unwrap()
+            Rank::from_index(value % 8).unwrap()
         }
 
         fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
             Box::new(
-                self.to_u8()
+                self.to_index()
                     .shrink()
-                    .map(|val| Rank::from_u8(val % 8).unwrap()),
+                    .map(|val| Rank::from_index(val % 8).unwrap()),
             )
         }
     }
@@ -452,13 +464,13 @@ pub mod tests {
     impl Arbitrary for File {
         fn arbitrary(g: &mut quickcheck::Gen) -> Self {
             let value: u8 = Arbitrary::arbitrary(g);
-            File::from_u8(value % 8).unwrap()
+            File::from_index(value % 8).unwrap()
         }
         fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
             Box::new(
-                self.to_u8()
+                self.to_index()
                     .shrink()
-                    .map(|val| File::from_u8(val % 8).unwrap()),
+                    .map(|val| File::from_index(val % 8).unwrap()),
             )
         }
     }
@@ -513,12 +525,12 @@ pub mod tests {
 
     #[quickcheck]
     fn rank_u8_roundtrip(rank: Rank) -> bool {
-        Rank::from_u8(rank.to_u8()) == Some(rank)
+        Rank::from_index(rank.to_index()) == Some(rank)
     }
 
     #[quickcheck]
     fn file_u8_roundtrip(file: File) -> bool {
-        File::from_u8(file.to_u8()) == Some(file)
+        File::from_index(file.to_index()) == Some(file)
     }
 
     #[quickcheck]
