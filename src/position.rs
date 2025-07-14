@@ -26,6 +26,7 @@ impl std::fmt::Debug for Position {
     }
 }
 
+// TODO validate FEN after
 #[derive(Debug, PartialEq, Eq)]
 pub enum PieceCountError {
     NotOneKing,
@@ -85,7 +86,19 @@ impl<'a> ConstParser<'a> {
 }
 
 impl Position {
-    pub const START_POS: Self = Self::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
+    pub const START_POS: Self = Self::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"); // TODO why doesn't this error
+    pub const POSITION_1: Self =
+        Position::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    pub const POSITION_2: Self =
+        Position::from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+    pub const POSITION_3: Self = Position::from_fen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
+    pub const POSITION_4: Self =
+        Position::from_fen("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1");
+    pub const POSITION_5: Self =
+        Position::from_fen("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8");
+    pub const POSITION_6: Self = Position::from_fen(
+        "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
+    );
 
     // Currently only used at compile time, so we just panic on invalid strings.
     // Slightly more liberal than the actual spec, castling rights can be in any order, repeated,
@@ -130,22 +143,22 @@ impl Position {
         fen.expect_space();
 
         let castling_rights = {
-            let mut castling_rights = CastlingRights::new_empty();
+            let mut rights = CastlingRights::new_empty();
             loop {
                 match fen.pop() {
                     b' ' => break,
                     b'-' => {}
-                    b'K' => castling_rights.restore(Side::White, CastlingSide::KingSide),
-                    b'Q' => castling_rights.restore(Side::White, CastlingSide::QueenSide),
-                    b'k' => castling_rights.restore(Side::Black, CastlingSide::KingSide),
-                    b'q' => castling_rights.restore(Side::Black, CastlingSide::QueenSide),
+                    b'K' => rights.restore(Side::White, CastlingSide::KingSide),
+                    b'Q' => rights.restore(Side::White, CastlingSide::QueenSide),
+                    b'k' => rights.restore(Side::Black, CastlingSide::KingSide),
+                    b'q' => rights.restore(Side::Black, CastlingSide::QueenSide),
                     _ => panic!("Unrecognized side char"),
                 }
             }
-            castling_rights
+            rights
         };
 
-        // No expect_space here, already consumed by castling rights parsing
+        // No expect_space needed, castling rights already consumes the space
 
         let en_passant_square = {
             match fen.pop() {
@@ -161,7 +174,7 @@ impl Position {
         fen.expect_space();
         let halfmove_clock = fen.pop_number() as u8;
         fen.expect_space();
-        let move_clock = fen.pop_number();
+        let move_clock = fen.pop_number() - 1;
 
         Position {
             pieces,
@@ -226,5 +239,13 @@ impl Position {
             }
         }
         Ok(())
+    }
+
+    pub const fn castling_rights(&self) -> &CastlingRights {
+        &self.castling_rights
+    }
+
+    pub const fn en_passant_square(&self) -> &Option<Square> {
+        &self.en_passant_square
     }
 }
