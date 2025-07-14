@@ -1,5 +1,6 @@
 #[allow(long_running_const_eval)]
 pub mod bitboard;
+pub mod castling_rights;
 pub mod coord;
 pub mod moves;
 pub mod perft;

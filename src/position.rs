@@ -1,6 +1,7 @@
 use std::char;
 
 use crate::{
+    castling_rights::{CastlingRights, CastlingSide},
     coord::{File, Rank, Square},
     piece::{Piece, PieceType, Side},
     print_board::format_board_fancy,
@@ -10,10 +11,7 @@ use crate::{
 pub struct Position {
     pieces: [Option<Piece>; 64],
     side: Side,
-    white_can_castle_kingside: bool,
-    white_can_castle_queenside: bool,
-    black_can_castle_kingside: bool,
-    black_can_castle_queenside: bool,
+    castling_rights: CastlingRights,
     en_passant_square: Option<Square>,
     halfmove_clock: u8,
     move_clock: usize,
@@ -131,29 +129,23 @@ impl Position {
 
         fen.expect_space();
 
-        let (
-            white_can_castle_kingside,
-            white_can_castle_queenside,
-            black_can_castle_kingside,
-            black_can_castle_queenside,
-        ) = {
-            let mut wk = false;
-            let mut wq = false;
-            let mut bk = false;
-            let mut bq = false;
+        let castling_rights = {
+            let mut castling_rights = CastlingRights::new_empty();
             loop {
                 match fen.pop() {
                     b' ' => break,
                     b'-' => {}
-                    b'K' => wk = true,
-                    b'Q' => wq = true,
-                    b'k' => bk = true,
-                    b'q' => bq = true,
+                    b'K' => castling_rights.restore(Side::White, CastlingSide::KingSide),
+                    b'Q' => castling_rights.restore(Side::White, CastlingSide::QueenSide),
+                    b'k' => castling_rights.restore(Side::Black, CastlingSide::KingSide),
+                    b'q' => castling_rights.restore(Side::Black, CastlingSide::QueenSide),
                     _ => panic!("Unrecognized side char"),
                 }
             }
-            (wk, wq, bk, bq)
+            castling_rights
         };
+
+        // No expect_space here, already consumed by castling rights parsing
 
         let en_passant_square = {
             match fen.pop() {
@@ -169,15 +161,12 @@ impl Position {
         fen.expect_space();
         let halfmove_clock = fen.pop_number() as u8;
         fen.expect_space();
-        let move_clock = fen.pop_number() - 1;
+        let move_clock = fen.pop_number();
 
         Position {
             pieces,
             side,
-            white_can_castle_kingside,
-            white_can_castle_queenside,
-            black_can_castle_kingside,
-            black_can_castle_queenside,
+            castling_rights,
             en_passant_square,
             halfmove_clock,
             move_clock,
