@@ -40,52 +40,56 @@ impl PawnPushes {
 
 // TODO en passant
 pub struct PawnAttacks {
-    pub east_attackers: BitBoard,
-    pub west_attackers: BitBoard,
-    pub east_promoters: BitBoard,
-    pub west_promoters: BitBoard,
+    east: BitBoard,
+    west: BitBoard,
 }
 
 impl PawnAttacks {
-    pub fn white(white_pawns: BitBoard, black: BitBoard) -> PawnAttacks {
-        const BACKRANK: BitBoard = BitBoard::R8;
-        let east = white_pawns
-            .difference(BitBoard::FH)
-            .lshift(9)
-            .intersect(black);
-        let west = white_pawns
-            .difference(BitBoard::FA)
-            .lshift(7)
-            .intersect(black);
+    const BACKRANK: BitBoard = BitBoard::R8.union(BitBoard::R1);
+    pub const fn white(white_pawns: BitBoard, black: BitBoard) -> PawnAttacks {
         PawnAttacks {
-            east_attackers: east.difference(BACKRANK),
-            west_attackers: west.difference(BACKRANK),
-            east_promoters: east.intersect(BACKRANK),
-            west_promoters: west.intersect(BACKRANK),
+            east: white_pawns
+                .difference(BitBoard::FH)
+                .lshift(9)
+                .intersect(black),
+            west: white_pawns
+                .difference(BitBoard::FA)
+                .lshift(7)
+                .intersect(black),
         }
     }
     pub fn black(black_pawns: BitBoard, white: BitBoard) -> PawnAttacks {
-        const BACKRANK: BitBoard = BitBoard::R1;
-        let east = black_pawns
-            .difference(BitBoard::FH)
-            .rshift(9)
-            .intersect(white);
-        let west = black_pawns
-            .difference(BitBoard::FA)
-            .rshift(7)
-            .intersect(white);
         PawnAttacks {
-            east_attackers: east.difference(BACKRANK),
-            west_attackers: west.difference(BACKRANK),
-            east_promoters: east.intersect(BACKRANK),
-            west_promoters: west.intersect(BACKRANK),
+            east: black_pawns
+                .difference(BitBoard::FH)
+                .rshift(9)
+                .intersect(white),
+            west: black_pawns
+                .difference(BitBoard::FA)
+                .rshift(7)
+                .intersect(white),
         }
     }
+    pub const fn threat(&self) -> BitBoard {
+        self.east.union(self.west)
+    }
+    pub const fn east_attackers(&self) -> BitBoard {
+        self.east.difference(Self::BACKRANK)
+    }
+    pub const fn east_promoters(&self) -> BitBoard {
+        self.east.difference(Self::BACKRANK)
+    }
+    pub const fn west_attackers(&self) -> BitBoard {
+        self.west.intersect(Self::BACKRANK)
+    }
+    pub const fn west_promoters(&self) -> BitBoard {
+        self.west.intersect(Self::BACKRANK)
+    }
     pub const fn count_moves(&self) -> u32 {
-        self.east_attackers.popcount()
-            + self.west_attackers.popcount()
-            + self.east_promoters.popcount() * 4
-            + self.west_promoters.popcount() * 4
+        self.east_attackers().popcount()
+            + self.west_attackers().popcount()
+            + self.east_promoters().popcount() * 4
+            + self.west_promoters().popcount() * 4
     }
 }
 

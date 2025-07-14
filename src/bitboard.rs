@@ -61,6 +61,12 @@ impl BitBoard {
     pub const fn is_empty(&self) -> bool {
         self.to_bits() == 0
     }
+    pub const fn is_nonempty(&self) -> bool {
+        self.to_bits() != 0
+    }
+    pub const fn intersects(&self, rhs: BitBoard) -> bool {
+        self.intersect(rhs).is_nonempty()
+    }
 
     pub fn from_squares<I: Iterator<Item = Square>>(iter: I) -> Self {
         iter.fold(Self::EMPTY, |acc, el| acc.union(el.to_bitboard()))
