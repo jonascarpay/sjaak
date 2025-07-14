@@ -122,7 +122,12 @@ impl Node {
         assert!(piece.piece_type().is_jumper()); // This _should_ always be optimized out, and
                                                  // provides an easy check if everything is inlined correctly
         self.piece(piece)
-            .map(|sq| movegen(sq).difference(self.occupancy(piece.side())).len())
+            .iter_squares()
+            .map(|sq| {
+                movegen(sq)
+                    .difference(self.occupancy(piece.side()))
+                    .popcount() as usize
+            })
             .sum()
     }
 
@@ -154,12 +159,46 @@ impl Node {
         assert!(piece.piece_type().is_slider()); // This _should_ always be optimized out and
                                                  // provides an easy check if everything is inlined correctly
         self.piece(piece)
+            .iter_squares()
             .map(|sq| {
                 movegen(sq, self.occupancy_total)
                     .difference(self.occupancy(piece.side()))
-                    .len()
+                    .popcount() as usize
             })
             .sum()
+    }
+
+    pub fn for_pawn_pushes<F: FnMut(Node)>(&self, side: Side, f: &mut F) -> usize {
+        let pushes: PawnPushes = self.pawn_pushes(side);
+        todo!()
+    }
+
+    pub fn perft(&self, depth: u8) -> usize {
+        self.perft_white(depth)
+    }
+
+    pub fn perft_black(&self, depth: u8) -> usize {
+        if depth > 0 {
+            self.perft_white(depth - 1)
+        } else {
+            if self.black_king_attacked() {
+                0
+            } else {
+                1
+            }
+        }
+    }
+
+    pub fn perft_white(&self, depth: u8) -> usize {
+        if depth > 0 {
+            self.perft_black(depth - 1)
+        } else {
+            if self.white_king_attacked() {
+                0
+            } else {
+                1
+            }
+        }
     }
 
     pub fn count_black_moves(&self) -> usize {
@@ -191,7 +230,8 @@ pub mod tests {
     #[test]
     fn position_1() {
         let n0 = Position::POSITION_1.to_bitboard();
-        assert_eq!(n0.count_white_moves(), 20);
+        assert_eq!(n0.perft(0), 1);
+        assert_eq!(n0.perft(1), 20);
         //               400
         //             8_902
         //           197_281

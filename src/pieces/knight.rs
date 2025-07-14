@@ -65,7 +65,7 @@ mod tests {
 
     #[quickcheck]
     fn always_at_least_2(sq: Square) -> bool {
-        knight_moves(sq).len() >= 2
+        knight_moves(sq).popcount() >= 2
     }
 
     #[quickcheck]

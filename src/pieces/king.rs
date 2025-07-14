@@ -67,7 +67,7 @@ mod tests {
     fn king_square_count(sq: Square) -> bool {
         let top_bottom = BitBoard::R1.union(BitBoard::R8);
         let left_right = BitBoard::FA.union(BitBoard::FH);
-        let n = king_moves_ref(sq).len();
+        let n = king_moves_ref(sq).popcount();
         match top_bottom.contains(sq) as u8 + left_right.contains(sq) as u8 {
             0 => n == 8,
             1 => n == 5,

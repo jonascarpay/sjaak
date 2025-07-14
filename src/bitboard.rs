@@ -148,24 +148,6 @@ impl BitBoard {
     pub const RIM: BitBoard = Self::R1.union(Self::R8).union(Self::FA).union(Self::FH);
 }
 
-impl Iterator for BitBoard {
-    type Item = Square;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let sq = Square::from_index(self.bits.trailing_zeros() as u8)?;
-        self.bits &= self.bits - 1;
-        Some(sq)
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let len = self.popcount() as usize;
-        (len, Some(len))
-    }
-}
-
-impl ExactSizeIterator for BitBoard {}
-impl std::iter::FusedIterator for BitBoard {}
-
 impl Default for BitBoard {
     fn default() -> Self {
         Self::new()
@@ -222,24 +204,8 @@ mod tests {
     }
 
     #[quickcheck]
-    fn to_bitboard_iterator_roundtrip(sq: Square) -> bool {
-        let v: Vec<Square> = sq.to_bitboard().collect();
-        v == vec![sq]
-    }
-
-    #[quickcheck]
     fn to_bitboard_is_from_squares(sq: Square) -> bool {
         sq.to_bitboard() == BitBoard::from_squares([sq].into_iter())
-    }
-
-    #[quickcheck]
-    fn len_is_count(bb: BitBoard) -> bool {
-        let len = bb.len();
-        let mut count = 0;
-        for _ in bb {
-            count += 1;
-        }
-        len == count
     }
 
     #[quickcheck]
@@ -250,11 +216,6 @@ mod tests {
     #[quickcheck]
     fn get_set(bb: BitBoard, sq: Square) -> bool {
         bb == bb.set_to(sq, bb.contains(sq))
-    }
-
-    #[quickcheck]
-    fn from_squares_is_id(bb: BitBoard) -> bool {
-        BitBoard::from_squares(bb) == bb
     }
 
     #[test]
