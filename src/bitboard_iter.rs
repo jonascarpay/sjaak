@@ -4,11 +4,10 @@ impl BitBoard {
     pub const fn iter_powerset(self) -> PowerSetIter {
         PowerSetIter::from_bitboard(self)
     }
-    pub const fn iter_bitboards(self) -> BitBoardIter {
-        BitBoardIter::from_bitboard(self)
-    }
-    pub const fn iter_squares(self) -> SquareIter {
-        SquareIter::from_bitboard(self)
+    pub const fn iter(self) -> BitBoardIter {
+        BitBoardIter {
+            state: self.to_bits(),
+        }
     }
 }
 
@@ -18,19 +17,15 @@ pub struct BitBoardIter {
 }
 
 impl BitBoardIter {
-    const fn from_bitboard(bb: BitBoard) -> Self {
-        BitBoardIter {
-            state: bb.to_bits(),
-        }
-    }
     pub const fn remaining(&self) -> u32 {
         self.state.count_ones()
     }
-    pub const fn pop(&mut self) -> Option<BitBoard> {
+    pub const fn pop(&mut self) -> Option<(Square, BitBoard)> {
         if self.state != 0 {
-            let state = self.state;
-            self.state &= state - 1;
-            Some(BitBoard::from_bits(self.state ^ state))
+            let sq = Square::from_index(self.state.trailing_zeros() as u8).expect("Impossible");
+            let prev_state = self.state;
+            self.state &= prev_state - 1;
+            Some((sq, BitBoard::from_bits(self.state ^ prev_state)))
         } else {
             None
         }
@@ -38,7 +33,8 @@ impl BitBoardIter {
 }
 
 impl Iterator for BitBoardIter {
-    type Item = BitBoard;
+    type Item = (Square, BitBoard);
+
     fn next(&mut self) -> Option<Self::Item> {
         self.pop()
     }
@@ -50,44 +46,6 @@ impl Iterator for BitBoardIter {
 
 impl std::iter::ExactSizeIterator for BitBoardIter {}
 impl std::iter::FusedIterator for BitBoardIter {}
-
-pub struct SquareIter {
-    state: u64,
-}
-
-impl SquareIter {
-    const fn from_bitboard(bb: BitBoard) -> Self {
-        SquareIter {
-            state: bb.to_bits(),
-        }
-    }
-    pub const fn remaining(&self) -> u32 {
-        self.state.count_ones()
-    }
-    pub const fn pop(&mut self) -> Option<Square> {
-        match Square::from_index(self.state.trailing_zeros() as u8) {
-            Some(sq) => {
-                self.state &= self.state - 1;
-                Some(sq)
-            }
-            None => None,
-        }
-    }
-}
-
-impl Iterator for SquareIter {
-    type Item = Square;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.pop()
-    }
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let len = self.remaining() as usize;
-        (len, Some(len))
-    }
-}
-
-impl std::iter::ExactSizeIterator for SquareIter {}
-impl std::iter::FusedIterator for SquareIter {}
 
 #[derive(Clone, Debug)]
 // Yields both the full and empty sets
@@ -175,8 +133,8 @@ mod tests {
     #[quickcheck]
     fn powerset_contains_every_unit_set(SmallBitBoard(bb): SmallBitBoard) -> bool {
         bb.clone()
-            .iter_bitboards()
-            .all(|bb_| bb.iter_powerset().any(|bb| bb_ == bb))
+            .iter()
+            .all(|(_, bb_)| bb.iter_powerset().any(|bb| bb_ == bb))
     }
 
     #[quickcheck]
@@ -191,21 +149,21 @@ mod tests {
 
     #[quickcheck]
     fn bitboard_iter_roundrtip(bb: BitBoard) -> bool {
-        bb.iter_bitboards().fold(BitBoard::EMPTY, BitBoard::union) == bb
+        bb.iter()
+            .fold(BitBoard::EMPTY, |acc, (_, bb)| acc.union(bb))
+            == bb
     }
 
     #[quickcheck]
     fn bitboard_iter_is_square_iter(bb: BitBoard) -> bool {
-        let v1: Vec<BitBoard> = bb.iter_bitboards().collect();
-        let v2: Vec<BitBoard> = bb.iter_squares().map(|sq| sq.to_bitboard()).collect();
-        v1 == v2
+        bb.iter().all(|(sq, bb)| sq.to_bitboard() == bb)
     }
 
     #[quickcheck]
     fn len_is_count(bb: BitBoard) -> bool {
-        let len = bb.iter_bitboards().len();
+        let len = bb.popcount();
         let mut count = 0;
-        for _ in bb.iter_bitboards() {
+        for _ in bb.iter() {
             count += 1;
         }
         len == count
@@ -213,6 +171,6 @@ mod tests {
 
     #[quickcheck]
     fn from_squares_is_id(bb: BitBoard) -> bool {
-        BitBoard::from_squares(bb.iter_squares()) == bb
+        BitBoard::from_squares(bb.iter().map(|(sq, _)| sq)) == bb
     }
 }

@@ -122,8 +122,8 @@ impl Node {
         assert!(piece.piece_type().is_jumper()); // This _should_ always be optimized out, and
                                                  // provides an easy check if everything is inlined correctly
         self.piece(piece)
-            .iter_squares()
-            .map(|sq| {
+            .iter()
+            .map(|(sq, _)| {
                 movegen(sq)
                     .difference(self.occupancy(piece.side()))
                     .popcount() as usize
@@ -159,8 +159,8 @@ impl Node {
         assert!(piece.piece_type().is_slider()); // This _should_ always be optimized out and
                                                  // provides an easy check if everything is inlined correctly
         self.piece(piece)
-            .iter_squares()
-            .map(|sq| {
+            .iter()
+            .map(|(sq, _)| {
                 movegen(sq, self.occupancy_total)
                     .difference(self.occupancy(piece.side()))
                     .popcount() as usize
