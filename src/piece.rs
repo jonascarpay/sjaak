@@ -17,6 +17,7 @@ pub enum Piece {
 }
 
 impl Piece {
+    pub const NUM_PIECES: u8 = 12;
     pub const fn side(self) -> Side {
         Side::from_index(self.to_index() & 1).unwrap() // ASM checked
     }
@@ -28,9 +29,6 @@ impl Piece {
     }
     pub const fn to_index(self) -> u8 {
         self as u8
-    }
-    pub fn get_key(self, sq: Square) -> u64 {
-        zobrist_table::get_key(sq, self) // ASM checked
     }
     pub fn flip_side(self) -> Self {
         Self::from_index(self.to_index() ^ 1).unwrap() // ASM checked
@@ -126,6 +124,7 @@ pub enum Side {
 }
 
 impl Side {
+    pub const CARDINALITY: u8 = 2;
     pub const fn from_index(index: u8) -> Option<Self> {
         match index {
             0 => Some(Self::White),
@@ -195,7 +194,7 @@ mod tests {
     impl Arbitrary for Piece {
         fn arbitrary(g: &mut quickcheck::Gen) -> Self {
             let ix: usize = Arbitrary::arbitrary(g);
-            Piece::from_index(ix as u8 % 12).unwrap()
+            Piece::from_index(ix as u8 % Piece::NUM_PIECES).unwrap()
         }
     }
 

@@ -12,10 +12,12 @@ use crate::{
         rook::rook_moves,
     },
     position::Position,
+    zobrist_table::ZOBRIST_TABLE,
 };
 
 pub struct Node {
     pieces: [BitBoard; 12], // TODO probably just unroll this
+    side: Side,
     occupancy_white: BitBoard,
     occupancy_black: BitBoard,
     occupancy_total: BitBoard,
@@ -41,6 +43,18 @@ impl Node {
             Side::Black => self.occupancy_black,
         }
     }
+    fn hash(&self) -> u64 {
+        let mut hash = 0;
+        for pc_ix in 0..Piece::NUM_PIECES {
+            for (sq, _) in self.pieces[pc_ix as usize].iter() {
+                hash ^= ZOBRIST_TABLE.hash_piece(Piece::from_index(pc_ix).unwrap(), sq);
+            }
+        }
+        hash ^= ZOBRIST_TABLE.hash_en_passant_square(self.en_passant_square);
+        hash ^= ZOBRIST_TABLE.hash_castling_rights(&self.castling_rights);
+        hash ^= ZOBRIST_TABLE.hash_side(self.side);
+        hash
+    }
     pub const fn from_position(pos: &Position) -> Node {
         let mut pieces = [BitBoard::EMPTY; 12];
         let mut occupancy_white = BitBoard::EMPTY;
@@ -59,6 +73,7 @@ impl Node {
         }
         Node {
             pieces,
+            side: pos.side(),
             occupancy_white,
             occupancy_black,
             occupancy_total: occupancy_black.union(occupancy_white),

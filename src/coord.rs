@@ -24,6 +24,7 @@ impl fmt::Debug for Square {
 }
 
 impl Square {
+    pub const NUM_SQUARES: u8 = 64;
     const fn from_xy(x: u8, y: u8) -> Self {
         Square {
             index: (y << 3) | x,
@@ -36,7 +37,7 @@ impl Square {
         self.index
     }
     pub const fn from_index(index: u8) -> Option<Self> {
-        if index < 64 {
+        if index < Self::NUM_SQUARES {
             Some(Square { index })
         } else {
             None
@@ -72,7 +73,7 @@ impl Square {
         Self::from_chars(c1, c2)
     }
     pub fn iter_all() -> impl ExactSizeIterator<Item = Square> + Clone {
-        (0..64).map(|index| Square { index })
+        (0..Self::NUM_SQUARES).map(|index| Square { index })
     }
 
     pub const fn is_dark(self) -> bool {
@@ -478,14 +479,14 @@ pub mod tests {
     impl Arbitrary for Square {
         fn arbitrary(g: &mut quickcheck::Gen) -> Self {
             let value: u8 = Arbitrary::arbitrary(g);
-            Square::from_index(value % 64).unwrap()
+            Square::from_index(value % Self::NUM_SQUARES).unwrap()
         }
 
         fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
             Box::new(
                 self.to_index()
                     .shrink()
-                    .map(|val| Square::from_index(val % 64).unwrap()),
+                    .map(|val| Square::from_index(val % Self::NUM_SQUARES).unwrap()),
             )
         }
     }

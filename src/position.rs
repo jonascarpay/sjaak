@@ -248,4 +248,7 @@ impl Position {
     pub const fn en_passant_square(&self) -> &Option<Square> {
         &self.en_passant_square
     }
+    pub const fn side(&self) -> Side {
+        self.side
+    }
 }

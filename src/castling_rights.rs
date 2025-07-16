@@ -12,6 +12,7 @@ pub enum CastlingSide {
 }
 
 impl CastlingRights {
+    pub const CARDINALITY: u8 = 16; // TODO rename? rename others?
     pub const fn new_full() -> Self {
         CastlingRights { bitset: 0b1111 }
     }
@@ -33,5 +34,11 @@ impl CastlingRights {
 
     pub const fn restore(&mut self, side: Side, castling_side: CastlingSide) {
         self.bitset |= Self::mask(side, castling_side)
+    }
+
+    /// 0-16
+    /// For Zobrist purposes
+    pub const fn to_index(&self) -> u8 {
+        self.bitset
     }
 }
