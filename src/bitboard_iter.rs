@@ -11,6 +11,16 @@ impl BitBoard {
     }
 }
 
+impl IntoIterator for BitBoard {
+    type Item = (Square, BitBoard);
+
+    type IntoIter = BitBoardIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct BitBoardIter {
     state: u64,
@@ -134,7 +144,7 @@ mod tests {
     fn powerset_contains_every_unit_set(SmallBitBoard(bb): SmallBitBoard) -> bool {
         bb.clone()
             .iter()
-            .all(|(_, bb_)| bb.iter_powerset().any(|bb| bb_ == bb))
+            .all(|(_, sbb)| bb.iter_powerset().any(|bb| sbb == bb))
     }
 
     #[quickcheck]
@@ -150,7 +160,7 @@ mod tests {
     #[quickcheck]
     fn bitboard_iter_roundrtip(bb: BitBoard) -> bool {
         bb.iter()
-            .fold(BitBoard::EMPTY, |acc, (_, bb)| acc.union(bb))
+            .fold(BitBoard::EMPTY, |acc, (_, sbb)| acc.union(sbb))
             == bb
     }
 

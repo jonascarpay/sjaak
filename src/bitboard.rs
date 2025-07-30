@@ -77,6 +77,9 @@ impl BitBoard {
     pub const fn from_bits(bits: u64) -> Self {
         BitBoard { bits }
     }
+    pub const fn bits_mut(&mut self) -> &mut u64 {
+        &mut self.bits
+    }
 
     pub const fn get_square(self) -> Option<Square> {
         Square::from_index(self.bits.trailing_zeros() as u8)
@@ -85,6 +88,17 @@ impl BitBoard {
     pub const fn popcount(self) -> u32 {
         self.bits.count_ones()
     }
+
+    // pub const fn pop(&mut self) -> Option<(Square, BitBoard)> {
+    //     if self.bits != 0 {
+    //         let sq = Square::from_index(self.bits.trailing_zeros() as u8).expect("Impossible");
+    //         let prev = self.bits;
+    //         self.bits &= prev - 1;
+    //         Some((sq, BitBoard::from_bits(self.bits ^ prev)))
+    //     } else {
+    //         None
+    //     }
+    // }
 
     // Set theory //
     pub const fn union(self, rhs: BitBoard) -> BitBoard {
@@ -100,6 +114,7 @@ impl BitBoard {
     pub const fn complement(self) -> BitBoard {
         BitBoard { bits: !self.bits }
     }
+    // TODO Maybe this is better called minus?
     pub const fn difference(self, rhs: BitBoard) -> BitBoard {
         BitBoard {
             bits: self.bits & !rhs.bits,
@@ -110,6 +125,26 @@ impl BitBoard {
             bits: self.bits ^ rhs.bits,
         }
     }
+    pub const fn is_supserset_of(self, rhs: BitBoard) -> bool {
+        rhs.difference(self).is_empty()
+    }
+    #[inline(never)]
+    pub const fn is_strict_supserset_of(self, rhs: BitBoard) -> bool {
+        rhs.difference(self).is_empty() && self.bits != rhs.bits
+    }
+
+    pub const fn apply(&mut self, rhs: BitBoard) {
+        self.bits ^= rhs.bits
+    }
+    pub fn apply_move(&mut self, rhs: BitBoard) {
+        debug_assert_eq!(rhs.popcount(), 2);
+        debug_assert_eq!(self.intersect(rhs).popcount(), 1);
+        self.bits ^= rhs.bits
+    }
+    pub const fn apply_mask(&mut self, mask: BitBoard) {
+        self.bits &= mask.to_bits()
+    }
+
     pub const fn lshift(self, sh: i8) -> BitBoard {
         BitBoard::from_bits(self.to_bits() << sh)
     }
@@ -151,14 +186,6 @@ impl BitBoard {
 impl Default for BitBoard {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-impl std::ops::Not for BitBoard {
-    type Output = BitBoard;
-
-    fn not(self) -> Self::Output {
-        BitBoard { bits: !self.bits }
     }
 }
 

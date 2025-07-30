@@ -9,12 +9,12 @@ use crate::{
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct Position {
-    pieces: [Option<Piece>; 64],
-    side: Side,
-    castling_rights: CastlingRights,
-    en_passant_square: Option<Square>,
-    halfmove_clock: u8,
-    move_clock: usize,
+    pub pieces: [Option<Piece>; 64],
+    pub side: Side,
+    pub castling_rights: CastlingRights,
+    pub en_passant_square: Option<Square>,
+    // pub halfmove_clock: u8,
+    // pub move_clock: usize,
 }
 
 impl std::fmt::Debug for Position {
@@ -86,19 +86,8 @@ impl<'a> ConstParser<'a> {
 }
 
 impl Position {
-    pub const START_POS: Self = Self::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"); // TODO why doesn't this error
-    pub const POSITION_1: Self =
-        Position::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-    pub const POSITION_2: Self =
-        Position::from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
-    pub const POSITION_3: Self = Position::from_fen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
-    pub const POSITION_4: Self =
-        Position::from_fen("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1");
-    pub const POSITION_5: Self =
-        Position::from_fen("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8");
-    pub const POSITION_6: Self = Position::from_fen(
-        "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
-    );
+    pub const START_POS: Self =
+        Self::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
     // Currently only used at compile time, so we just panic on invalid strings.
     // Slightly more liberal than the actual spec, castling rights can be in any order, repeated,
@@ -181,8 +170,8 @@ impl Position {
             side,
             castling_rights,
             en_passant_square,
-            halfmove_clock,
-            move_clock,
+            // halfmove_clock,
+            // move_clock,
         }
     }
 
@@ -240,15 +229,90 @@ impl Position {
         }
         Ok(())
     }
+}
 
-    pub const fn castling_rights(&self) -> &CastlingRights {
-        &self.castling_rights
-    }
+#[cfg(test)]
+impl Position {
+    //   ╔════════════════════════╗
+    // 8 ║ ♜  ♞  ♝  ♛  ♚  ♝  ♞  ♜ ║
+    // 7 ║ ♟  ♟  ♟  ♟  ♟  ♟  ♟  ♟ ║
+    // 6 ║                        ║
+    // 5 ║                        ║
+    // 4 ║                        ║
+    // 3 ║                        ║
+    // 2 ║ ♙  ♙  ♙  ♙  ♙  ♙  ♙  ♙ ║
+    // 1 ║ ♖  ♘  ♗  ♕  ♔  ♗  ♘  ♖ ║
+    //   ╚════════════════════════╝
+    //     a  b  c  d  e  f  g  h
+    pub const POSITION_1: Self = Self::START_POS;
 
-    pub const fn en_passant_square(&self) -> &Option<Square> {
-        &self.en_passant_square
-    }
-    pub const fn side(&self) -> Side {
-        self.side
-    }
+    //   ╔════════════════════════╗
+    // 8 ║ ♜           ♚        ♜ ║
+    // 7 ║ ♟     ♟  ♟  ♛  ♟  ♝    ║
+    // 6 ║ ♝  ♞        ♟  ♞  ♟    ║
+    // 5 ║          ♙  ♘          ║
+    // 4 ║    ♟        ♙          ║
+    // 3 ║       ♘        ♕     ♟ ║
+    // 2 ║ ♙  ♙  ♙  ♗  ♗  ♙  ♙  ♙ ║
+    // 1 ║ ♖           ♔        ♖ ║
+    //   ╚════════════════════════╝
+    //     a  b  c  d  e  f  g  h
+    pub const POSITION_2: Self =
+        Position::from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+
+    //   ╔════════════════════════╗
+    // 8 ║                        ║
+    // 7 ║       ♟                ║
+    // 6 ║          ♟             ║
+    // 5 ║ ♔  ♙                 ♜ ║
+    // 4 ║    ♖           ♟     ♚ ║
+    // 3 ║                        ║
+    // 2 ║             ♙     ♙    ║
+    // 1 ║                        ║
+    //   ╚════════════════════════╝
+    //     a  b  c  d  e  f  g  h
+    pub const POSITION_3: Self = Position::from_fen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
+
+    //    ╔════════════════════════╗
+    //  8 ║ ♜           ♚        ♜ ║
+    //  7 ║ ♙  ♟  ♟  ♟     ♟  ♟  ♟ ║
+    //  6 ║    ♝           ♞  ♝  ♘ ║
+    //  5 ║ ♞  ♙                   ║
+    //  4 ║ ♗  ♗  ♙     ♙          ║
+    //  3 ║ ♛              ♘       ║
+    //  2 ║ ♙  ♟     ♙        ♙  ♙ ║
+    //  1 ║ ♖        ♕     ♖  ♔    ║
+    //    ╚════════════════════════╝
+    //      a  b  c  d  e  f  g  h
+    pub const POSITION_4: Self =
+        Position::from_fen("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1");
+
+    //   ╔════════════════════════╗
+    // 8 ║ ♜  ♞  ♝  ♛     ♚     ♜ ║
+    // 7 ║ ♟  ♟     ♙  ♝  ♟  ♟  ♟ ║
+    // 6 ║       ♟                ║
+    // 5 ║                        ║
+    // 4 ║       ♗                ║
+    // 3 ║                        ║
+    // 2 ║ ♙  ♙  ♙     ♘  ♞  ♙  ♙ ║
+    // 1 ║ ♖  ♘  ♗  ♕  ♔        ♖ ║
+    //   ╚════════════════════════╝
+    //     a  b  c  d  e  f  g  h
+    pub const POSITION_5: Self =
+        Position::from_fen("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8");
+
+    //   ╔════════════════════════╗
+    // 8 ║ ♜              ♜  ♚    ║
+    // 7 ║    ♟  ♟     ♛  ♟  ♟  ♟ ║
+    // 6 ║ ♟     ♞  ♟     ♞       ║
+    // 5 ║       ♝     ♟     ♗    ║
+    // 4 ║       ♗     ♙     ♝    ║
+    // 3 ║ ♙     ♘  ♙     ♘       ║
+    // 2 ║    ♙  ♙     ♕  ♙  ♙  ♙ ║
+    // 1 ║ ♖              ♖  ♔    ║
+    //   ╚════════════════════════╝
+    //     a  b  c  d  e  f  g  h
+    pub const POSITION_6: Self = Position::from_fen(
+        "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
+    );
 }

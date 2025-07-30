@@ -18,6 +18,36 @@ pub enum Piece {
 
 impl Piece {
     pub const NUM_PIECES: u8 = 12;
+    pub const WHITE_PIECES: [Self; 6] = [
+        Self::WhitePawn,
+        Self::WhiteKnight,
+        Self::WhiteBishop,
+        Self::WhiteRook,
+        Self::WhiteQueen,
+        Self::WhiteKing,
+    ];
+    pub const BLACK_PIECES: [Self; 6] = [
+        Self::BlackPawn,
+        Self::BlackKnight,
+        Self::BlackBishop,
+        Self::BlackRook,
+        Self::BlackQueen,
+        Self::BlackKing,
+    ];
+    pub const PIECES: [Self; 12] = [
+        Self::WhitePawn,
+        Self::BlackPawn,
+        Self::WhiteKnight,
+        Self::BlackKnight,
+        Self::WhiteBishop,
+        Self::BlackBishop,
+        Self::WhiteRook,
+        Self::BlackRook,
+        Self::WhiteQueen,
+        Self::BlackQueen,
+        Self::WhiteKing,
+        Self::BlackKing,
+    ];
     pub const fn side(self) -> Side {
         Side::from_index(self.to_index() & 1).unwrap() // ASM checked
     }
@@ -143,6 +173,7 @@ impl Side {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum PieceType {
     Pawn = 0,
     Knight = 1,
