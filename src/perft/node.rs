@@ -40,7 +40,7 @@ impl Node {
     fn hash(&self) -> u64 {
         let mut hash = 0;
         for pc_ix in 0..Piece::NUM_PIECES {
-            for (sq, _) in self.pieces[pc_ix as usize].iter() {
+            for (sq, _) in self.pieces[pc_ix as usize] {
                 hash ^= ZOBRIST_TABLE.hash_piece(Piece::from_index(pc_ix).unwrap(), sq);
             }
         }

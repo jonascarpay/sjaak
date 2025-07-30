@@ -89,16 +89,30 @@ impl BitBoard {
         self.bits.count_ones()
     }
 
-    // pub const fn pop(&mut self) -> Option<(Square, BitBoard)> {
-    //     if self.bits != 0 {
-    //         let sq = Square::from_index(self.bits.trailing_zeros() as u8).expect("Impossible");
-    //         let prev = self.bits;
-    //         self.bits &= prev - 1;
-    //         Some((sq, BitBoard::from_bits(self.bits ^ prev)))
-    //     } else {
-    //         None
-    //     }
-    // }
+    pub const fn pop(&mut self) -> Option<(Square, BitBoard)> {
+        if self.bits != 0 {
+            let sq = Square::from_index(self.bits.trailing_zeros() as u8).expect("Impossible");
+            let prev = self.bits;
+            self.bits &= prev - 1;
+            Some((sq, BitBoard::from_bits(self.bits ^ prev)))
+        } else {
+            None
+        }
+    }
+
+    pub const fn pop_bitboard(&mut self) -> Option<Square> {
+        match self.pop() {
+            None => None,
+            Some((sq, _)) => Some(sq),
+        }
+    }
+
+    pub const fn pop_square(&mut self) -> Option<BitBoard> {
+        match self.pop() {
+            None => None,
+            Some((_, bb)) => Some(bb),
+        }
+    }
 
     // Set theory //
     pub const fn union(self, rhs: BitBoard) -> BitBoard {
@@ -182,6 +196,20 @@ impl BitBoard {
     pub const FH: BitBoard = File::FH.to_bitboard();
     pub const RIM: BitBoard = Self::R1.union(Self::R8).union(Self::FA).union(Self::FH);
 }
+
+impl Iterator for BitBoard {
+    type Item = (Square, BitBoard);
+    fn next(&mut self) -> Option<Self::Item> {
+        self.pop()
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.popcount() as usize;
+        (len, Some(len))
+    }
+}
+
+impl std::iter::ExactSizeIterator for BitBoard {}
+impl std::iter::FusedIterator for BitBoard {}
 
 impl Default for BitBoard {
     fn default() -> Self {
@@ -317,5 +345,31 @@ mod tests {
         let diff = a.difference(b);
         let int = a.intersect(b);
         diff.intersect(int).is_empty()
+    }
+
+    // Iterator tests
+    #[quickcheck]
+    fn bitboard_iter_roundrtip(bb: BitBoard) -> bool {
+        bb.fold(BitBoard::EMPTY, |acc, (_, sbb)| acc.union(sbb)) == bb
+    }
+
+    #[quickcheck]
+    fn bitboard_iter_is_square_iter(bb: BitBoard) -> bool {
+        bb.clone().all(|(sq, bb)| sq.to_bitboard() == bb)
+    }
+
+    #[quickcheck]
+    fn len_is_count(bb: BitBoard) -> bool {
+        let len = bb.popcount();
+        let mut count = 0;
+        for _ in bb {
+            count += 1;
+        }
+        len == count
+    }
+
+    #[quickcheck]
+    fn from_squares_is_id(bb: BitBoard) -> bool {
+        BitBoard::from_squares(bb.map(|(sq, _)| sq)) == bb
     }
 }
