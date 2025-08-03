@@ -166,6 +166,45 @@ impl BitBoard {
         BitBoard::from_bits(self.to_bits() >> sh)
     }
 
+    #[inline(always)]
+    const fn checked_shift(self, lbits: i8, forbidden: BitBoard) -> BitBoard {
+        // TODO maybe this should be Option
+        debug_assert!(!self.intersects(forbidden));
+        let bits = if lbits > 0 {
+            self.bits << lbits
+        } else {
+            self.bits >> lbits.abs()
+        };
+        let new = BitBoard::from_bits(bits);
+        debug_assert!(self.popcount() == new.popcount());
+        new
+    }
+    pub const fn north(self) -> BitBoard {
+        self.checked_shift(8, BitBoard::R8)
+    }
+    pub const fn east(self) -> BitBoard {
+        self.checked_shift(1, BitBoard::FH)
+    }
+    pub const fn south(self) -> BitBoard {
+        self.checked_shift(-8, BitBoard::R1)
+    }
+    pub const fn west(self) -> BitBoard {
+        self.checked_shift(-1, BitBoard::FA)
+    }
+
+    pub const fn northeast(self) -> BitBoard {
+        self.checked_shift(9, BitBoard::R8.union(BitBoard::FH))
+    }
+    pub const fn northwest(self) -> BitBoard {
+        self.checked_shift(7, BitBoard::R8.union(BitBoard::FA))
+    }
+    pub const fn southeast(self) -> BitBoard {
+        self.checked_shift(-7, BitBoard::R1.union(BitBoard::FH))
+    }
+    pub const fn southwest(self) -> BitBoard {
+        self.checked_shift(-9, BitBoard::R1.union(BitBoard::FA))
+    }
+
     pub const fn reverse(self) -> BitBoard {
         BitBoard {
             bits: self.bits.reverse_bits(),
@@ -285,6 +324,22 @@ mod tests {
             bb.set_assign(Square::from_coord(file, Rank::R8));
         }
         assert_eq!(bb, BitBoard::RIM)
+    }
+
+    #[test]
+    fn shift_unit_tests() {
+        fn mk_bb(str: &str) -> BitBoard {
+            Square::from_str(str).unwrap().to_bitboard()
+        }
+        // TODO why does this overflow???
+        assert_eq!(mk_bb("d4").north(), mk_bb("d5"));
+        assert_eq!(mk_bb("d4").northeast(), mk_bb("e5"));
+        assert_eq!(mk_bb("d4").east(), mk_bb("e4"));
+        assert_eq!(mk_bb("d4").southeast(), mk_bb("e3"));
+        assert_eq!(mk_bb("d4").south(), mk_bb("d3"));
+        assert_eq!(mk_bb("d4").southwest(), mk_bb("c3"));
+        assert_eq!(mk_bb("d4").west(), mk_bb("c4"));
+        assert_eq!(mk_bb("d4").northwest(), mk_bb("c5"));
     }
 
     #[quickcheck]
