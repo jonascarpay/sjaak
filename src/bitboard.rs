@@ -153,7 +153,7 @@ impl BitBoard {
     pub fn apply_move(&mut self, rhs: BitBoard) {
         debug_assert_eq!(rhs.popcount(), 2);
         debug_assert_eq!(self.intersect(rhs).popcount(), 1);
-        self.bits ^= rhs.bits
+        self.apply(rhs)
     }
     pub const fn apply_mask(&mut self, mask: BitBoard) {
         self.bits &= mask.to_bits()

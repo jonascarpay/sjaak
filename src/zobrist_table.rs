@@ -46,13 +46,9 @@ impl ZobristTable {
         let index = piece.to_index() as usize * 64 + square.to_index() as usize;
         unsafe { *self.piece_table.get_unchecked(index) }
     }
-    pub fn hash_en_passant_square(&self, square: Square) -> u64 {
+    pub fn hash_en_passant_square(&self, index: usize) -> u64 {
         // TODO why does the ASM here contain a 0xFF mask, on aarch64 at least?
-        unsafe {
-            *self
-                .en_passant_square_table
-                .get_unchecked(square.to_index() as usize)
-        }
+        unsafe { *self.en_passant_square_table.get_unchecked(index) }
     }
     pub fn hash_castling_rights(&self, castling_rights: &CastlingRights) -> u64 {
         // TODO why does the ASM here contain an add, on aarch64 at least?
@@ -76,12 +72,12 @@ struct Lcg {
 }
 
 impl Lcg {
+    const MULT: u128 = 47026247687942121848144207491837418733;
     const fn new(seed: u128) -> Self {
         Lcg { state: seed }
     }
     const fn next(&mut self) -> u64 {
-        const MULT: u128 = 47026247687942121848144207491837418733;
-        self.state = self.state.wrapping_mul(MULT).wrapping_add(1);
+        self.state = self.state.wrapping_mul(Self::MULT).wrapping_add(1);
         (self.state >> 64) as u64
     }
 }

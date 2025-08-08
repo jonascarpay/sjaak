@@ -1,7 +1,7 @@
 use crate::{
     bitboard::BitBoard,
     castling_rights::CastlingRights,
-    coord::Square,
+    coord::{Rank, Square},
     piece::{Piece, PieceType, Side},
     pieces::{
         bishop::bishop_moves, king::king_moves, knight::knight_moves, pawn::PawnAttacks,
@@ -10,6 +10,47 @@ use crate::{
     position::Position,
     zobrist_table::ZOBRIST_TABLE,
 };
+
+#[derive(Clone)]
+pub struct EnPassantSquare {
+    mask: BitBoard,
+}
+
+impl EnPassantSquare {
+    const MASK: BitBoard = Rank::R6.to_bitboard().union(Rank::R3.to_bitboard());
+    const fn to_index(&self) -> usize {
+        self.mask.to_bits().trailing_zeros() as usize
+    }
+    const fn debug_assert_valid(bb: BitBoard) {
+        debug_assert!(!bb.intersects(Self::MASK.complement()));
+        debug_assert!(bb.intersect(Self::MASK).popcount() < 2);
+    }
+    const fn from_bitboard(bb: BitBoard) -> Self {
+        Self::debug_assert_valid(bb);
+        EnPassantSquare { mask: bb }
+    }
+    pub const fn to_bitboard(&self) -> BitBoard {
+        self.mask
+    }
+    const fn empty() -> Self {
+        Self {
+            mask: BitBoard::EMPTY,
+        }
+    }
+    pub const fn set(&mut self, bb: BitBoard) {
+        Self::debug_assert_valid(bb);
+        self.mask = bb;
+    }
+    pub const fn reset(&mut self) {
+        self.mask = BitBoard::EMPTY
+    }
+    const fn from_square(sq: Square) -> Self {
+        Self::from_bitboard(sq.to_bitboard())
+    }
+    const fn to_square(&self) -> Option<Square> {
+        self.mask.get_square()
+    }
+}
 
 #[derive(Clone)]
 pub struct Node {
@@ -21,7 +62,7 @@ pub struct Node {
     pub castling_rights: CastlingRights,
     // TODO For now, A1 == 0 means no en passant possible. A little ugly, but if it turns out to
     // work I'll wrap it up in a cleaner API.
-    pub en_passant_square: Square,
+    pub en_passant_square: EnPassantSquare,
 }
 
 impl Node {
@@ -38,13 +79,14 @@ impl Node {
         }
     }
     fn hash(&self) -> u64 {
+        // TODO: This should be done incrementally, probably
         let mut hash = 0;
         for pc_ix in 0..Piece::NUM_PIECES {
             for (sq, _) in self.pieces[pc_ix as usize] {
                 hash ^= ZOBRIST_TABLE.hash_piece(Piece::from_index(pc_ix).unwrap(), sq);
             }
         }
-        hash ^= ZOBRIST_TABLE.hash_en_passant_square(self.en_passant_square);
+        hash ^= ZOBRIST_TABLE.hash_en_passant_square(self.en_passant_square.to_index());
         hash ^= ZOBRIST_TABLE.hash_castling_rights(&self.castling_rights);
         hash ^= ZOBRIST_TABLE.hash_side(self.side);
         hash
@@ -73,8 +115,8 @@ impl Node {
             occupancy_total: occupancy_black.union(occupancy_white),
             castling_rights: pos.castling_rights,
             en_passant_square: match pos.en_passant_square {
-                Some(sq) => sq,
-                None => Square::from_index(0).unwrap(),
+                Some(sq) => EnPassantSquare::from_square(sq),
+                None => EnPassantSquare::empty(),
             },
         }
     }
@@ -214,22 +256,22 @@ impl Node {
         }
     }
     pub fn reset_en_passant(&mut self) {
-        self.en_passant_square = Square::A1;
+        self.en_passant_square.reset();
     }
 }
 
 impl Position {
-    pub const fn to_bitboard(&self) -> Node {
+    pub const fn to_node(&self) -> Node {
         Node::from_position(self)
     }
 }
 
 #[cfg(test)]
 impl Node {
-    pub const POSITION_1: Node = Position::POSITION_1.to_bitboard();
-    pub const POSITION_2: Node = Position::POSITION_2.to_bitboard();
-    pub const POSITION_3: Node = Position::POSITION_3.to_bitboard();
-    pub const POSITION_4: Node = Position::POSITION_4.to_bitboard();
-    pub const POSITION_5: Node = Position::POSITION_5.to_bitboard();
-    pub const POSITION_6: Node = Position::POSITION_6.to_bitboard();
+    pub const POSITION_1: Node = Position::POSITION_1.to_node();
+    pub const POSITION_2: Node = Position::POSITION_2.to_node();
+    pub const POSITION_3: Node = Position::POSITION_3.to_node();
+    pub const POSITION_4: Node = Position::POSITION_4.to_node();
+    pub const POSITION_5: Node = Position::POSITION_5.to_node();
+    pub const POSITION_6: Node = Position::POSITION_6.to_node();
 }
